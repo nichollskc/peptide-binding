@@ -1,19 +1,21 @@
+"""Constructs database of interacting fragments."""
+
 import numpy as np
 import pandas
 
-def readMatrixDataFrame(pdb_id):
-    """Read matrix from file, label using IDs file and return as a data frame.
+def read_matrix_data_frame(pdb_id):
+    """Read interaction matrix from file, label using IDs file and return as a
+    data frame.
 
     Args:
-      pdb_id: string of PDB ID e.g. "2zxx".
+        pdb_id (string): string of PDB ID e.g. "2zxx".
 
     Returns:
-      pandas.DataFrame containing the matrix, with labels given by the rows of
-        the IDs file
+        pandas.DataFrame: data frame containing the matrix, with labels given by
+            the rows of the IDs file
     """
     ids_filename = pdb_id + "_ids.txt"
     matrix_filename = pdb_id + "_icMat.bmat"
-    pdb_filename = pdb_id + ".pdb"
 
     # Read in residue IDs
     ids = pandas.read_csv(ids_filename, sep=" ", header=None)
@@ -27,7 +29,7 @@ def readMatrixDataFrame(pdb_id):
         raw = np.fromfile(f, np.int32)
 
     # Found dimensions from corresponding ids.txt file
-    matrix = raw.reshape((num_residues,num_residues))
+    matrix = raw.reshape((num_residues, num_residues))
 
     df = pandas.DataFrame(matrix, index=combined_labels, columns=combined_labels)
     return df
@@ -51,4 +53,4 @@ def findInteractions(matrix, length, threshold=-2):
     pass
 
 if __name__ == "__main__":
-    df = readMatrixDataFrame("2zxx")
+    df_2zxx = read_matrix_data_frame("2zxx")
