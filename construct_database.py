@@ -3,7 +3,32 @@
 import numpy as np
 import pandas
 
-def read_matrix_data_frame(pdb_id):
+def read_matrix_from_file(pdb_id):
+    """Read interaction matrix from file and return as np.array.
+
+    Args:
+        pdb_id (string): string of PDB ID e.g. "2zxx".
+
+    Returns:
+        np.array: interaction matrix as an np.array
+    """
+    ids_filename = pdb_id + "_ids.txt"
+    matrix_filename = pdb_id + "_icMat.bmat"
+
+    # Read in residue IDs
+    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+    num_residues = ids.shape[0]
+
+    # Read in binary matrix
+    with open(matrix_filename, 'rb') as f:
+        raw = np.fromfile(f, np.int32)
+
+    # Found dimensions from corresponding ids.txt file
+    matrix = raw.reshape((num_residues, num_residues))
+
+    return matrix
+
+def read_matrix_from_file_df(pdb_id):
     """Read interaction matrix from file, label using IDs file and return as a
     data frame.
 
@@ -14,22 +39,12 @@ def read_matrix_data_frame(pdb_id):
         pandas.DataFrame: data frame containing the matrix, with labels given by
             the rows of the IDs file
     """
+    matrix = read_matrix_from_file(pdb_id)
     ids_filename = pdb_id + "_ids.txt"
-    matrix_filename = pdb_id + "_icMat.bmat"
-
-    # Read in residue IDs
-    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
-    num_residues = ids.shape[0]
 
     # Combine the three columns into one label for each residue
+    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
     combined_labels = ids.apply(lambda x: '_'.join(x.map(str)), axis=1)
-
-    # Read in binary matrix
-    with open(matrix_filename, 'rb') as f:
-        raw = np.fromfile(f, np.int32)
-
-    # Found dimensions from corresponding ids.txt file
-    matrix = raw.reshape((num_residues, num_residues))
 
     df = pandas.DataFrame(matrix, index=combined_labels, columns=combined_labels)
     return df
@@ -104,4 +119,4 @@ def find_all_binding_pairs_indices(matrix, fragment_length):
     return binding_pairs
 
 if __name__ == "__main__":
-    df_2zxx = read_matrix_data_frame("2zxx")
+    df_2zxx = read_matrix_from_file_df("2zxx")
