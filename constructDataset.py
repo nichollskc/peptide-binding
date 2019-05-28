@@ -33,3 +33,4 @@ def findInteractions(matrix, length, threshold=-2):
     Output:
     ??
     """
+    pass
