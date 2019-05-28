@@ -1,21 +1,36 @@
 import numpy as np
 import pandas
 
-# Read in residue IDs
-ids = pandas.read_csv('2zxx_ids.txt', sep=" ", header=None)
-num_residues = ids.shape[0]
+def readMatrixDataFrame(pdb_id):
+    """Read matrix from file, label using IDs file and return as a data frame.
 
-# Combine the three columns into one label for each residue
-combined_labels = ids.apply(lambda x: '_'.join(x.map(str)), axis=1)
+    Args:
+      pdb_id: string of PDB ID e.g. "2zxx".
 
-# Read in binary matrix
-with open('2zxx_icMat.bmat', 'rb') as f:
-    raw = np.fromfile(f, np.int32)
+    Returns:
+      pandas.DataFrame containing the matrix, with labels given by the rows of
+        the IDs file
+    """
+    ids_filename = pdb_id + "_ids.txt"
+    matrix_filename = pdb_id + "_icMat.bmat"
+    pdb_filename = pdb_id + ".pdb"
 
-# Found dimensions from corresponding ids.txt file
-matrix = raw.reshape((num_residues,num_residues))
+    # Read in residue IDs
+    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+    num_residues = ids.shape[0]
 
-df = pandas.DataFrame(matrix, index=combined_labels, columns=combined_labels)
+    # Combine the three columns into one label for each residue
+    combined_labels = ids.apply(lambda x: '_'.join(x.map(str)), axis=1)
+
+    # Read in binary matrix
+    with open(matrix_filename, 'rb') as f:
+        raw = np.fromfile(f, np.int32)
+
+    # Found dimensions from corresponding ids.txt file
+    matrix = raw.reshape((num_residues,num_residues))
+
+    df = pandas.DataFrame(matrix, index=combined_labels, columns=combined_labels)
+    return df
 
 def findInteractions(matrix, length, threshold=-2):
     """
@@ -34,3 +49,6 @@ def findInteractions(matrix, length, threshold=-2):
     ??
     """
     pass
+
+if __name__ == "__main__":
+    df = readMatrixDataFrame("2zxx")
