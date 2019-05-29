@@ -49,9 +49,62 @@ def read_matrix_from_file_df(pdb_id):
     df = pandas.DataFrame(matrix, index=combined_labels, columns=combined_labels)
     return df
 
+def find_contiguous_fragments(indices, ids_filename, max_gap=3):
+    """Decomposes a sorted set of indices into smaller sets which are
+    contiguous, based on the residue numbers given in the ids_filename.
+    E.g. [1,2,5,100,101,102,200] becomes [[1,2,5], [100,101,102], [200]].
+    Allow gaps of up to 2 for a fragment to count as contiguous.
+
+    Args:
+        indices (array): array of indices to split into fragments
+        ids_filename (string): name of file listing residues
+        max_gap (int): maximum number of missing residues in a contiguous
+            fragment
+
+    Returns:
+        array[array]: array of fragments, where each fragment is given by
+            an array of indices
+    """
+    fragments = []
+
+    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+
+    if indices.size:
+        # Build up each fragment element by element, starting a new fragment
+        #   when the next element isn't compatible with the current fragment
+        #   either because there is too big a gap between residue numbers or
+        #   because they are on separate chains
+        current_index = indices[0]
+        current_chain = ids.loc[current_index, 0]
+        current_residue = ids.loc[current_index, 1]
+
+        working_fragment = [current_index]
+        for new_index in indices[1:]:
+            new_chain = ids.loc[new_index, 0]
+            new_residue = ids.loc[new_index, 1]
+
+            assert new_index > current_index, "List of indices must be sorted"
+
+            # If the gap is bigger than allowed or the chain has changed
+            #   then we must start a new fragment
+            if new_chain != current_chain or (new_residue - current_residue) > max_gap:
+                # Add the completed fragment to the list of fragments
+                fragments.append(working_fragment)
+                # Start a new fragment
+                working_fragment = [new_index]
+            else:
+                working_fragment.append(new_index)
+
+            current_residue = new_residue
+            current_chain = new_chain
+            current_index = new_index
+        fragments.append(working_fragment)
+
+    return fragments
+
 def find_interactor_indices(matrix, cdr_indices):
     """
-    Find all indices that interact with the given CDR according to the matrix.
+    Finds all indices that interact with the given CDR according to the matrix.
 
     Args:
         matrix (np.array): square matrix giving interactions between residues,
@@ -62,19 +115,13 @@ def find_interactor_indices(matrix, cdr_indices):
     Returns:
         array: array of indices that interact with any of the indices of CDR.
     """
-    interactor_indices = []
-
-    # For each index in the CDR-like fragment, find all the residues it
-    #   interacts with. These will have negative value in the matrix.
-    for index in cdr_indices:
-        negative_entries = (matrix[index] < 0).nonzero()
-        interactor_indices += negative_entries
+    interactor_indices = ((matrix[cdr_indices, :] < 0).sum(axis=0) > 0).nonzero()
 
     return interactor_indices
 
 def find_all_binding_pairs_indices(matrix, fragment_length):
     """
-    Find all CDR-like regions of given length in the matrix, and also find
+    Finds all CDR-like regions of given length in the matrix, and also finds
     the residues the CDR-like regions interact with in this matrix.
 
     Args:
@@ -119,4 +166,6 @@ def find_all_binding_pairs_indices(matrix, fragment_length):
     return binding_pairs
 
 if __name__ == "__main__":
-    df_2zxx = read_matrix_from_file_df("2zxx")
+    matrix_3cuq = read_matrix_from_file("../example_files/3cuq")
+    df_3cuq = read_matrix_from_file_df("../example_files/3cuq")
+    bind_pairs_3cuq = find_all_binding_pairs_indices(matrix_3cuq, 4)
