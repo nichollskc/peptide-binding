@@ -1,9 +1,16 @@
 """Performs data exploration of database."""
 
+import random
+import os
+
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 import construct_database as con_dat
+
+MATRIX_DIR = "/sharedscratch/kcn25/icMatrix/"
+IDS_DIR = "/sharedscratch/kcn25/IDs/"
+PDB_DIR = "/sharedscratch/kcn25/cleanPDBs2/"
 
 def save_plot(filename, folder="../plots/"):
     """Saves plot to a file in the given folder."""
@@ -82,5 +89,43 @@ def plot_interaction_distributions_single(pdb_id, fragment_length):
     save_plot("3cuq_sizes_interactor_fragments.png")
     plt.clf()
 
+def plot_interaction_distributions_many(num_to_plot, fragment_length):
+    """Investigates distribution of interacting fragments of many protein files"""
+    random.seed(42)
+
+    # Choose random pdb_ids to work with
+    random_matrix_files = random.sample(os.listdir(MATRIX_DIR), k=num_to_plot)
+    random_ids = [filename.split("_")[0] for filename in random_matrix_files]
+
+    proportions_cdrs = []
+
+    fig_l, ax_l = plt.subplots()
+    fig_n, ax_n = plt.subplots()
+    fig_s, ax_s = plt.subplots()
+
+    for pdb_id in random_ids:
+        results = investigate_interaction_distributions_single(pdb_id,
+                                                               fragment_length)
+
+        sns.distplot(results['interactor_lengths'], kde=False, norm_hist=True, ax=ax_l)
+        sns.distplot(results['num_interactor_fragments'], kde=False, norm_hist=True, ax=ax_n)
+        sns.distplot(results['sizes_interactor_fragments'], kde=False, norm_hist=True, ax=ax_s)
+        proportions_cdrs.append(results['proportion_cdrs'])
+
+    ax_l.set_title("Size of interacting region")
+    ax_l.set_xlabel("Number of residues interacting with CDR-like fragment")
+    ax_l.set_ylabel("Density")
+    fig_l.savefig("../plots/combined_interactor_lengths.png")
+    fig_l.show()
+
+    fig_n.savefig("../plots/combined_num_interactor_fragments.png")
+    fig_s.savefig("../plots/combined_sizes_interactor_fragments.png")
+
+    plt.clf()
+    sns.distplot(proportions_cdrs)
+    plt.show()
+
 if __name__ == "__main__":
     plot_interaction_distributions_single("../example_files/3cuq", 4)
+
+    plot_interaction_distributions_many(2, 4)
