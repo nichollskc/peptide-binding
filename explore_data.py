@@ -42,7 +42,7 @@ def investigate_interaction_distributions_single(pdb_id, fragment_length):
     interactor_lengths = [len(bp[1][0]) for bp in binding_pairs]
 
     interactor_fragments = [con_dat.find_contiguous_fragments(bp[1][0],
-                                                              pdb_id + "_ids.txt")
+                                                              con_dat.get_id_filename(pdb_id))
                             for bp in binding_pairs]
     num_interactor_fragments = [len(fragments) for fragments in interactor_fragments]
     sizes_interactor_fragments = [len(fragment)
@@ -66,21 +66,21 @@ def plot_interaction_distributions_single(pdb_id, fragment_length):
     print(results['num_cdrs'])
     print(results['proportion_cdrs'])
 
-    sns.distplot(results['interactor_lengths'], kde=False, norm_hist=True)
+    sns.distplot(results['interactor_lengths'], norm_hist=True)
     plt.title("Size of interacting region")
     plt.xlabel("Number of residues interacting with CDR-like fragment")
     plt.ylabel("Density")
     save_plot("3cuq_interactor_lengths.png")
     plt.clf()
 
-    sns.distplot(results['num_interactor_fragments'], kde=False, norm_hist=True)
+    sns.distplot(results['num_interactor_fragments'], norm_hist=True)
     plt.title("Number of interacting fragments")
     plt.xlabel("Number of contiguous fragments interacting with CDR-like fragment")
     plt.ylabel("Density")
     save_plot("3cuq_num_interactor_fragments.png")
     plt.clf()
 
-    sns.distplot(results['sizes_interactor_fragments'], kde=False, norm_hist=True)
+    sns.distplot(results['sizes_interactor_fragments'], norm_hist=True)
     plt.title("Sizes of interacting fragments")
     plt.xlabel("Size of contiguous fragments interacting with CDR-like fragment")
     plt.ylabel("Density")
@@ -106,9 +106,9 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
         results = investigate_interaction_distributions_single(pdb_id,
                                                                fragment_length)
 
-        sns.distplot(results['interactor_lengths'], kde=False, norm_hist=True, ax=ax_l)
-        sns.distplot(results['num_interactor_fragments'], kde=False, norm_hist=True, ax=ax_n)
-        sns.distplot(results['sizes_interactor_fragments'], kde=False, norm_hist=True, ax=ax_s)
+        sns.distplot(results['interactor_lengths'], norm_hist=True, ax=ax_l)
+        sns.distplot(results['num_interactor_fragments'], norm_hist=True, ax=ax_n)
+        sns.distplot(results['sizes_interactor_fragments'], norm_hist=True, ax=ax_s)
         proportions_cdrs.append(results['proportion_cdrs'])
         num_cdrs.append(results['num_cdrs'])
 
@@ -129,6 +129,4 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
     plt.show()
 
 if __name__ == "__main__":
-    plot_interaction_distributions_single("../example_files/3cuq", 4)
-
-    plot_interaction_distributions_many(2, 4)
+    plot_interaction_distributions_many(100, 4)
