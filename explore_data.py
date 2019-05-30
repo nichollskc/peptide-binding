@@ -8,10 +8,6 @@ import matplotlib.pyplot as plt
 
 import construct_database as con_dat
 
-MATRIX_DIR = "/sharedscratch/kcn25/icMatrix/"
-IDS_DIR = "/sharedscratch/kcn25/IDs/"
-PDB_DIR = "/sharedscratch/kcn25/cleanPDBs2/"
-
 def save_plot(filename, folder="../plots/"):
     """Saves plot to a file in the given folder."""
     full_filename = folder + filename
@@ -55,6 +51,7 @@ def investigate_interaction_distributions_single(pdb_id, fragment_length):
 
     results = {}
     results['proportion_cdrs'] = proportion_cdrs
+    results['num_cdrs'] = num_cdrs
     results['interactor_lengths'] = interactor_lengths
     results['num_interactor_fragments'] = num_interactor_fragments
     results['sizes_interactor_fragments'] = sizes_interactor_fragments
@@ -66,6 +63,7 @@ def plot_interaction_distributions_single(pdb_id, fragment_length):
     interactions with these fragments and plots these distributions"""
     results = investigate_interaction_distributions_single(pdb_id, fragment_length)
 
+    print(results['num_cdrs'])
     print(results['proportion_cdrs'])
 
     sns.distplot(results['interactor_lengths'], kde=False, norm_hist=True)
@@ -94,10 +92,11 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
     random.seed(42)
 
     # Choose random pdb_ids to work with
-    random_matrix_files = random.sample(os.listdir(MATRIX_DIR), k=num_to_plot)
+    random_matrix_files = random.sample(os.listdir(con_dat.MATRIX_DIR), k=num_to_plot)
     random_ids = [filename.split("_")[0] for filename in random_matrix_files]
 
     proportions_cdrs = []
+    num_cdrs = []
 
     fig_l, ax_l = plt.subplots()
     fig_n, ax_n = plt.subplots()
@@ -111,18 +110,22 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
         sns.distplot(results['num_interactor_fragments'], kde=False, norm_hist=True, ax=ax_n)
         sns.distplot(results['sizes_interactor_fragments'], kde=False, norm_hist=True, ax=ax_s)
         proportions_cdrs.append(results['proportion_cdrs'])
+        num_cdrs.append(results['num_cdrs'])
+
+    print("Total number of CDRs found: ", sum(num_cdrs))
 
     ax_l.set_title("Size of interacting region")
     ax_l.set_xlabel("Number of residues interacting with CDR-like fragment")
     ax_l.set_ylabel("Density")
     fig_l.savefig("../plots/combined_interactor_lengths.png")
-    fig_l.show()
-
     fig_n.savefig("../plots/combined_num_interactor_fragments.png")
     fig_s.savefig("../plots/combined_sizes_interactor_fragments.png")
 
+    fig_l.show()
+
     plt.clf()
     sns.distplot(proportions_cdrs)
+    save_plot("../plots/proportion_cdrs.png")
     plt.show()
 
 if __name__ == "__main__":

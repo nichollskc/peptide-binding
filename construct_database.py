@@ -3,6 +3,22 @@
 import numpy as np
 import pandas
 
+MATRIX_DIR = "/sharedscratch/kcn25/icMatrix/"
+IDS_DIR = "/sharedscratch/kcn25/IDs/"
+PDB_DIR = "/sharedscratch/kcn25/cleanPDBs2/"
+
+def get_id_filename(pdb_id):
+    """Given the pdb id, return the full filename for the IDs file."""
+    return IDS_DIR + pdb_id + "_ids.txt"
+
+def get_matrix_filename(pdb_id):
+    """Given the pdb id, return the full filename for the matrix file."""
+    return MATRIX_DIR + pdb_id + "_icMat.bmat"
+
+def get_pdb_filename(pdb_id):
+    """Given the pdb id, return the full filename for the PDB file."""
+    return PDB_DIR + pdb_id + ".pdb"
+
 def read_matrix_from_file(pdb_id):
     """Read interaction matrix from file and return as np.array.
 
@@ -12,8 +28,8 @@ def read_matrix_from_file(pdb_id):
     Returns:
         np.array: interaction matrix as an np.array
     """
-    ids_filename = pdb_id + "_ids.txt"
-    matrix_filename = pdb_id + "_icMat.bmat"
+    ids_filename = get_id_filename(pdb_id)
+    matrix_filename = get_matrix_filename(pdb_id)
 
     # Read in residue IDs
     ids = pandas.read_csv(ids_filename, sep=" ", header=None)
@@ -40,7 +56,7 @@ def read_matrix_from_file_df(pdb_id):
             the rows of the IDs file
     """
     matrix = read_matrix_from_file(pdb_id)
-    ids_filename = pdb_id + "_ids.txt"
+    ids_filename = get_matrix_filename(pdb_id)
 
     # Combine the three columns into one label for each residue
     ids = pandas.read_csv(ids_filename, sep=" ", header=None)
