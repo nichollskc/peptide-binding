@@ -88,7 +88,10 @@ def plot_interaction_distributions_single(pdb_id, fragment_length):
     plt.clf()
 
 def plot_interaction_distributions_many(num_to_plot, fragment_length):
-    """Investigates distribution of interacting fragments of many protein files"""
+    """Investigates distribution of interacting fragments of many protein files.
+    Chooses num_to_plot random files from con_dat.MATRIX_DIR and runs
+    investigate_interaction_distributions_single on each, collates and plots the
+    results of these analysis methods."""
     random.seed(42)
 
     # Choose random pdb_ids to work with

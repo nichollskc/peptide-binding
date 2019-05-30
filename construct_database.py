@@ -20,7 +20,7 @@ def get_pdb_filename(pdb_id):
     return PDB_DIR + pdb_id + ".pdb"
 
 def read_matrix_from_file(pdb_id):
-    """Read interaction matrix from file and return as np.array.
+    """Reads interaction matrix from file and return as np.array.
 
     Args:
         pdb_id (string): string of PDB ID e.g. "2zxx".
