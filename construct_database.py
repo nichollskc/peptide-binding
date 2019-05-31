@@ -1,5 +1,9 @@
 """Constructs database of interacting fragments."""
 
+import csv
+import os
+import random
+
 import numpy as np
 import pandas
 
@@ -69,7 +73,7 @@ def find_contiguous_fragments(indices, ids_filename, max_gap=3):
     """Decomposes a sorted set of indices into smaller sets which are
     contiguous, based on the residue numbers given in the ids_filename.
     E.g. [1,2,5,100,101,102,200] becomes [[1,2,5], [100,101,102], [200]].
-    Allow gaps of up to 2 for a fragment to count as contiguous.
+    Allow gaps of up to max_gap for a fragment to count as contiguous.
 
     Args:
         indices (array): array of indices to split into fragments
@@ -181,7 +185,92 @@ def find_all_binding_pairs_indices(matrix, fragment_length):
 
     return binding_pairs
 
+# Disable pylint warning about too many local variables for this function
+#pylint: disable-msg=too-many-locals
+def process_database_single(pdb_id, fragment_length):
+    """Finds all CDR-like fragments of the given length in the interaction
+    matrix for the given pdb_id. Additionally the residues these fragments
+    interact with.
+
+    Writes the following out to file for each fragment found:
+    cdr_indices, cdr_residues, all_interacting_indices, all_interacting_residues
+
+    Finds contiguous fragments in the interacting residues and for each
+    contiguous fragment, writes the following out to file:
+    cdr_indices, cdr_residues, fragment_interacting_indices, fragment_interacting_residues
+    """
+    matrix = read_matrix_from_file(pdb_id)
+    bind_pairs = find_all_binding_pairs_indices(matrix, fragment_length)
+
+    bound_pairs_all = [["cdr_indices",
+                        "cdr_residues",
+                        "interacting_indices",
+                        "interacting_residues"]]
+    bound_pairs_fragmented = [["cdr_indices",
+                               "cdr_residues",
+                               "interacting_indices",
+                               "interacting_residues"]]
+
+    ids_filename = get_id_filename(pdb_id)
+    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+
+    for bp in bind_pairs:
+        # Write out cdr fragment, interacting indices, pdb_id
+        cdr_indices = bp[0]
+        cdr_indices_str = ",".join(map(str, cdr_indices))
+        cdr_residues = [ids[index, 2] for index in cdr_indices]
+        cdr_residues_str = "".join(cdr_residues)
+
+        interacting_indices = bp[1]
+        interacting_indices_str = ",".join(map(str, interacting_indices))
+        interacting_residues = [ids[index, 2] for index in interacting_indices]
+        interacting_residues_str = "".join(interacting_residues)
+
+        bound_pairs_all.append([cdr_indices_str,
+                                cdr_residues_str,
+                                interacting_indices_str,
+                                interacting_residues_str])
+
+        interacting_fragments = find_contiguous_fragments(interacting_indices,
+                                                          ids_filename,
+                                                          max_gap=2)
+
+        for interacting_fragment in interacting_fragments:
+            interacting_fragment_str = "".join(map(str, interacting_fragment))
+            interacting_fragment_residues = [ids[index, 2] for index in interacting_fragment]
+            interacting_fragment_residues_str = "".join(interacting_fragment_residues)
+
+            bound_pairs_fragmented.append([cdr_indices_str,
+                                           cdr_residues_str,
+                                           interacting_fragment_str,
+                                           interacting_fragment_residues_str])
+
+    all_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
+                             pdb_id +
+                             "bound_pairs_all.csv")
+    with open(all_residues_filename, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerows(bound_pairs_all)
+
+    fragmented_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
+                                    pdb_id +
+                                    "bound_pairs_fragmented.csv")
+    with open(fragmented_residues_filename, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerows(bound_pairs_fragmented)
+
+def process_database(ids_list, fragment_length):
+    """Finds all CDR-like fragments of the given length in the files listed in
+    the array ids_list. Additionally finds the residues these fragments interact
+    with. Outputs all finds to files, with separate files for each pdb_id.
+    """
+    for pdb_id in ids_list:
+        process_database_single(pdb_id, fragment_length)
+
 if __name__ == "__main__":
-    matrix_3cuq = read_matrix_from_file("../example_files/3cuq")
-    df_3cuq = read_matrix_from_file_df("../example_files/3cuq")
-    bind_pairs_3cuq = find_all_binding_pairs_indices(matrix_3cuq, 4)
+    random.seed(42)
+    # Choose random pdb_ids to work with
+    random_matrix_files = random.sample(os.listdir(MATRIX_DIR), k=2)
+    random_ids = [filename.split("_")[0] for filename in random_matrix_files]
+
+    process_database(random_ids, 4)
