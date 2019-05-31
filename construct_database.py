@@ -218,12 +218,12 @@ def process_database_single(pdb_id, fragment_length):
         # Write out cdr fragment, interacting indices, pdb_id
         cdr_indices = bp[0]
         cdr_indices_str = ",".join(map(str, cdr_indices))
-        cdr_residues = [ids[index, 2] for index in cdr_indices]
+        cdr_residues = [ids.loc[index, 2] for index in cdr_indices]
         cdr_residues_str = "".join(cdr_residues)
 
-        interacting_indices = bp[1]
+        interacting_indices = bp[1][0]
         interacting_indices_str = ",".join(map(str, interacting_indices))
-        interacting_residues = [ids[index, 2] for index in interacting_indices]
+        interacting_residues = [ids.loc[index, 2] for index in interacting_indices]
         interacting_residues_str = "".join(interacting_residues)
 
         bound_pairs_all.append([cdr_indices_str,
@@ -236,8 +236,8 @@ def process_database_single(pdb_id, fragment_length):
                                                           max_gap=2)
 
         for interacting_fragment in interacting_fragments:
-            interacting_fragment_str = "".join(map(str, interacting_fragment))
-            interacting_fragment_residues = [ids[index, 2] for index in interacting_fragment]
+            interacting_fragment_str = ",".join(map(str, interacting_fragment))
+            interacting_fragment_residues = [ids.loc[index, 2] for index in interacting_fragment]
             interacting_fragment_residues_str = "".join(interacting_fragment_residues)
 
             bound_pairs_fragmented.append([cdr_indices_str,
