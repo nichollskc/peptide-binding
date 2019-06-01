@@ -88,9 +88,45 @@ def plot_interaction_distributions_single(pdb_id, fragment_length):
     save_plot("3cuq_sizes_interactor_fragments.png")
     plt.clf()
 
+def plot_combined_interaction_distributions(combined_results):
+    """Plot the combined results from analysing distribution of length and
+    fragment size of interacting residues in multiple interaction matrices."""
+
+    plt.clf()
+    dummy_fig, ax = plt.subplots()
+    sns.distplot(combined_results['proportions_cdrs'], ax=ax)
+    ax.set_title("Proportion of fragments of length " +
+                 combined_results['fragment_length'] +
+                 " that are CDR-like")
+    ax.set_xlabel("Proportion")
+    ax.set_ylabel("Density")
+    save_plot("../plots/proportion_cdrs.png")
+
+    plt.clf()
+    dummy_fig, ax = plt.subplots()
+    sns.distplot(combined_results['interactor_lengths'], ax=ax)
+    ax.set_title("Size of interacting region")
+    ax.set_xlabel("Number of residues interacting with CDR-like fragment")
+    ax.set_ylabel("Density")
+    save_plot("../plots/interactor_lengths.png")
+
+    plt.clf()
+    dummy_fig, ax = plt.subplots()
+    sns.distplot(combined_results['num_interactor_fragments'], ax=ax)
+    ax.set_title("Number of contiguous interacting fragments for each CDR-like fragment")
+    ax.set_xlabel("Number of contiguous interacting fragments")
+    ax.set_ylabel("Density")
+    save_plot("../plots/num_interactor_fragments.png")
+
+    plt.clf()
+    dummy_fig, ax = plt.subplots()
+    sns.distplot(combined_results['sizes_interactor_fragments'], ax=ax)
+    ax.set_title("Lengths of contiguous interacting fragments")
+    ax.set_xlabel("Length of interacting fragment")
+    ax.set_ylabel("Density")
+    save_plot("../plots/sizes_interactor_fragments.png")
+
 # Disable pylint warning about too many local variables for this function
-#pylint: disable-msg=too-many-locals
-#pylint: disable-msg=too-many-statements
 def plot_interaction_distributions_many(num_to_plot, fragment_length):
     """Investigates distribution of interacting fragments of many protein files.
     Chooses num_to_plot random files from con_dat.MATRIX_DIR and runs
@@ -102,11 +138,13 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
     random_matrix_files = random.sample(os.listdir(con_dat.MATRIX_DIR), k=num_to_plot)
     random_ids = [filename.split("_")[0] for filename in random_matrix_files]
 
-    proportions_cdrs = []
-    num_cdrs = []
-    interactor_lengths = []
-    num_interactor_fragments = []
-    sizes_interactor_fragments = []
+    combined_results = {'fragment_length': fragment_length,
+                        'num_to_plot': num_to_plot,
+                        'proportions_cdrs': [],
+                        'num_cdrs': [],
+                        'interactor_lengths': [],
+                        'num_interactor_fragments': [],
+                        'sizes_interactor_fragments': []}
 
     fig_l, ax_l = plt.subplots()
     fig_n, ax_n = plt.subplots()
@@ -120,25 +158,17 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
         sns.distplot(results['num_interactor_fragments'], norm_hist=True, ax=ax_n)
         sns.distplot(results['sizes_interactor_fragments'], norm_hist=True, ax=ax_s)
 
-        interactor_lengths.extend(results['interactor_lengths'])
-        num_interactor_fragments.extend(results['num_interactor_fragments'])
-        sizes_interactor_fragments.extend(results['sizes_interactor_fragments'])
+        combined_results['interactor_lengths'].extend(results['interactor_lengths'])
+        combined_results['num_interactor_fragments'].extend(results['num_interactor_fragments'])
+        combined_results['sizes_interactor_fragments'].extend(results['sizes_interactor_fragments'])
 
-        proportions_cdrs.append(results['proportion_cdrs'])
-        num_cdrs.append(results['num_cdrs'])
-
-    combined_results = {'fragment_length': fragment_length,
-                        'num_to_plot': num_to_plot,
-                        'proportions_cdrs': proportions_cdrs,
-                        'num_cdrs': num_cdrs,
-                        'interactor_lengths': interactor_lengths,
-                        'num_interactor_fragments': num_interactor_fragments,
-                        'sizes_interactor_fragments': sizes_interactor_fragments}
+        combined_results['proportions_cdrs'].append(results['proportion_cdrs'])
+        combined_results['num_cdrs'].append(results['num_cdrs'])
 
     with open("/sharedscratch/kcn25/eda/interaction_distributions.json", "w") as f:
         json.dump(combined_results, f)
 
-    print("Total number of CDRs found: ", sum(num_cdrs))
+    print("Total number of CDRs found: ", sum(combined_results['num_cdrs']))
 
     ax_l.set_title("Size of interacting region")
     ax_l.set_xlabel("Number of residues interacting with CDR-like fragment")
@@ -155,37 +185,7 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
     ax_s.set_ylabel("Density")
     fig_s.savefig("../plots/individual_sizes_interactor_fragments.png")
 
-    plt.clf()
-    dummy_fig, ax = plt.subplots()
-    sns.distplot(proportions_cdrs, ax=ax)
-    ax.set_title("Proportion of fragments of length " + fragment_length + " that are CDR-like")
-    ax.set_xlabel("Proportion")
-    ax.set_ylabel("Density")
-    save_plot("../plots/proportion_cdrs.png")
-
-    plt.clf()
-    dummy_fig, ax = plt.subplots()
-    sns.distplot(interactor_lengths, ax=ax)
-    ax.set_title("Size of interacting region")
-    ax.set_xlabel("Number of residues interacting with CDR-like fragment")
-    ax.set_ylabel("Density")
-    save_plot("../plots/interactor_lengths.png")
-
-    plt.clf()
-    dummy_fig, ax = plt.subplots()
-    sns.distplot(num_interactor_fragments, ax=ax)
-    ax.set_title("Number of contiguous interacting fragments for each CDR-like fragment")
-    ax.set_xlabel("Number of contiguous interacting fragments")
-    ax.set_ylabel("Density")
-    save_plot("../plots/num_interactor_fragments.png")
-
-    plt.clf()
-    dummy_fig, ax = plt.subplots()
-    sns.distplot(sizes_interactor_fragments, ax=ax)
-    ax.set_title("Lengths of contiguous interacting fragments")
-    ax.set_xlabel("Length of interacting fragment")
-    ax.set_ylabel("Density")
-    save_plot("../plots/sizes_interactor_fragments.png")
+    plot_combined_interaction_distributions(combined_results)
 
 if __name__ == "__main__":
     plot_interaction_distributions_many(100, 5)
