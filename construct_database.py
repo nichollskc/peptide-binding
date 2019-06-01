@@ -1,9 +1,10 @@
 """Constructs database of interacting fragments."""
 
 import csv
+import glob
 
 import numpy as np
-import pandas
+import pandas as pd
 
 MATRIX_DIR = "/sharedscratch/kcn25/icMatrix/"
 IDS_DIR = "/sharedscratch/kcn25/IDs/"
@@ -34,7 +35,7 @@ def read_matrix_from_file(pdb_id):
     matrix_filename = get_matrix_filename(pdb_id)
 
     # Read in residue IDs
-    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+    ids = pd.read_csv(ids_filename, sep=" ", header=None)
     num_residues = ids.shape[0]
 
     # Read in binary matrix
@@ -54,17 +55,17 @@ def read_matrix_from_file_df(pdb_id):
         pdb_id (string): string of PDB ID e.g. "2zxx".
 
     Returns:
-        pandas.DataFrame: data frame containing the matrix, with labels given by
+        pd.DataFrame: data frame containing the matrix, with labels given by
             the rows of the IDs file
     """
     matrix = read_matrix_from_file(pdb_id)
     ids_filename = get_matrix_filename(pdb_id)
 
     # Combine the three columns into one label for each residue
-    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+    ids = pd.read_csv(ids_filename, sep=" ", header=None)
     combined_labels = ids.apply(lambda x: '_'.join(x.map(str)), axis=1)
 
-    df = pandas.DataFrame(matrix, index=combined_labels, columns=combined_labels)
+    df = pd.DataFrame(matrix, index=combined_labels, columns=combined_labels)
     return df
 
 def find_contiguous_fragments(indices, ids_filename, max_gap=3):
@@ -85,7 +86,7 @@ def find_contiguous_fragments(indices, ids_filename, max_gap=3):
     """
     fragments = []
 
-    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+    ids = pd.read_csv(ids_filename, sep=" ", header=None)
 
     if indices:
         # Build up each fragment element by element, starting a new fragment
@@ -226,7 +227,7 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
                                "target_pdb_indices"]]
 
     ids_filename = get_id_filename(pdb_id)
-    ids = pandas.read_csv(ids_filename, sep=" ", header=None)
+    ids = pd.read_csv(ids_filename, sep=" ", header=None)
 
     for bp in bind_pairs:
         cdr_indices = bp[0]
@@ -296,9 +297,32 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
 
 def read_bound_pairs(filename):
     """Read a csv file containing bound pairs and return the csv"""
-    bound_pairs_df = pandas.read_csv(filename, header=0, index_col=None)
+    bound_pairs_df = pd.read_csv(filename, header=0, index_col=None)
 
     return bound_pairs_df
+
+def combine_bound_pairs(filename_list):
+    """Read in all the bound pairs from the csv files in `filename_list` and
+    combine them into a single dataframe"""
+    data_frames = [read_bound_pairs(filename) for filename in filename_list]
+
+    combined_data_frame = pd.concat(data_frames)
+
+    return combined_data_frame
+
+def combine_all_bound_pairs_fragmented():
+    """Read in all files containing bound pairs where the target has been
+    fragmented into contiguous fragments and combine into a single dataframe"""
+    fragmented_files = glob.glob("/sharedscratch/kcn25/fragment_database/*frag*")
+    bound_pairs_fragmented = combine_bound_pairs(fragmented_files)
+    return bound_pairs_fragmented
+
+def combine_all_bound_pairs_complete():
+    """Read in all files containing bound pairs where the target is intact
+    and combine all into a single dataframe"""
+    complete_files = glob.glob("/sharedscratch/kcn25/fragment_database/*all*")
+    bound_pairs_complete = combine_bound_pairs(complete_files)
+    return bound_pairs_complete
 
 def process_database(ids_list, fragment_length, do_fragment_target):
     """Finds all CDR-like fragments of the given length in the files listed in
