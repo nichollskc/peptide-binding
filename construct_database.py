@@ -214,6 +214,7 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
                         "cdr_chain",
                         "cdr_pdb_indices",
                         "target_residues",
+                        "target_length",
                         "target_indices",
                         "target_chain",
                         "target_pdb_indices"]]
@@ -222,6 +223,7 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
                                "cdr_chain",
                                "cdr_pdb_indices",
                                "target_residues",
+                               "fragment_length",
                                "target_indices",
                                "target_chain",
                                "target_pdb_indices"]]
@@ -245,12 +247,14 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
         target_pdb_indices = [ids.loc[index, 1] for index in target_indices]
         target_pdb_indices_str = ",".join(map(str, target_pdb_indices))
         target_chain = ids.loc[target_indices[0], 0]
+        target_length = len(target_indices)
 
         bound_pairs_all.append([cdr_residues_str,
                                 cdr_indices_str,
                                 cdr_chain,
                                 cdr_pdb_indices_str,
                                 target_residues_str,
+                                target_length,
                                 target_indices_str,
                                 target_chain,
                                 target_pdb_indices_str])
@@ -270,12 +274,14 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
                 target_fragment_pdb_indices_str = ",".join(map(str,
                                                                target_fragment_pdb_indices))
                 target_fragment_chain = ids.loc[target_fragment[0], 0]
+                target_fragment_length = len(target_fragment)
 
                 bound_pairs_fragmented.append([cdr_residues_str,
                                                cdr_indices_str,
                                                cdr_chain,
                                                cdr_pdb_indices_str,
                                                target_fragment_residues_str,
+                                               target_fragment_length,
                                                target_fragment_str,
                                                target_fragment_chain,
                                                target_fragment_pdb_indices_str])
