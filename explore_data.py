@@ -1,9 +1,10 @@
 """Performs data exploration of database."""
 
-import random
-import os
-
 import json
+import os
+import random
+
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -56,6 +57,7 @@ def investigate_interaction_distributions_single(pdb_id, fragment_length):
     results['interactor_lengths'] = interactor_lengths
     results['num_interactor_fragments'] = num_interactor_fragments
     results['sizes_interactor_fragments'] = sizes_interactor_fragments
+    results['cdr_observation_counts'] = np.diagonal(matrix, offset=3)[0]
     return results
 
 def plot_interaction_distributions_single(pdb_id, fragment_length):
@@ -126,7 +128,14 @@ def plot_combined_interaction_distributions(combined_results):
     ax.set_ylabel("Density")
     save_plot("../plots/sizes_interactor_fragments.png")
 
-# Disable pylint warning about too many local variables for this function
+    plt.clf()
+    dummy_fig, ax = plt.subplots()
+    sns.distplot(combined_results['cdr_observation_counts'], ax=ax)
+    ax.set_title("Number of CDR fragments each fragment is similar to")
+    ax.set_xlabel("Number of CDR fragments")
+    ax.set_ylabel("Density")
+    save_plot("../plots/cdr_observation_counts.png")
+
 def plot_interaction_distributions_many(num_to_plot, fragment_length):
     """Investigates distribution of interacting fragments of many protein files.
     Chooses num_to_plot random files from con_dat.MATRIX_DIR and runs
@@ -144,7 +153,8 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
                         'num_cdrs': [],
                         'interactor_lengths': [],
                         'num_interactor_fragments': [],
-                        'sizes_interactor_fragments': []}
+                        'sizes_interactor_fragments': [],
+                        'cdr_observation_counts': []}
 
     fig_l, ax_l = plt.subplots()
     fig_n, ax_n = plt.subplots()
@@ -164,6 +174,7 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
 
         combined_results['proportions_cdrs'].append(results['proportion_cdrs'])
         combined_results['num_cdrs'].append(results['num_cdrs'])
+        combined_results['cdr_observation_counts'].extend(results['cdr_observation_counts'])
 
     with open("/sharedscratch/kcn25/eda/interaction_distributions.json", "w") as f:
         json.dump(combined_results, f)
