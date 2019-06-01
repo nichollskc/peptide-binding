@@ -203,5 +203,32 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
 
     plot_combined_interaction_distributions(combined_results)
 
+def explore_observation_count_threshold(thresholds):
+    """Investigate how many CDR-like fragments would be discarded if we insisted
+    that it must have been found in `threshold` CDR domains for it to count
+    as CDR-like."""
+    with open("/sharedscratch/kcn25/eda/interaction_distributions.json", "r") as f:
+        results = json.load(f)
+
+    cdr_observation_counts = np.array(results['cdr_observation_counts'])
+
+    print("Total fragments considered: " + str(len(cdr_observation_counts)))
+
+    # First look at the number of fragments that were not observed as similar
+    #   to *any* CDR domains
+    not_cdrs = np.where((cdr_observation_counts < 1) &
+                        (cdr_observation_counts > - 2))
+    print("Number of fragments not similar to any CDR domains: " +
+          str(len(not_cdrs[0])))
+
+    for threshold in thresholds:
+        below_threshold = np.where((cdr_observation_counts < threshold) &
+                                   (cdr_observation_counts > - threshold))
+        print("Number of fragments similar to " +
+              str(threshold) +
+              " or fewer CDR fragments: " +
+              str(len(below_threshold[0])))
+
 if __name__ == "__main__":
     plot_interaction_distributions_many(1000, 4)
+    explore_observation_count_threshold(thresholds=[2, 3, 5, 10, 20, 50, 100])
