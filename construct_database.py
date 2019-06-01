@@ -1,8 +1,6 @@
 """Constructs database of interacting fragments."""
 
 import csv
-import os
-import random
 
 import numpy as np
 import pandas
@@ -208,12 +206,20 @@ def process_database_single(pdb_id, fragment_length):
     bind_pairs = find_all_binding_pairs_indices(matrix, fragment_length)
 
     bound_pairs_all = [["cdr_indices",
+                        "cdr_chain",
+                        "cdr_pdb_indices",
                         "cdr_residues",
                         "interacting_indices",
+                        "interacting_chain",
+                        "interacting_pdb_indices"
                         "interacting_residues"]]
     bound_pairs_fragmented = [["cdr_indices",
+                               "cdr_chain",
+                               "cdr_pdb_indices",
                                "cdr_residues",
                                "interacting_indices",
+                               "interacting_chain",
+                               "interacting_pdb_indices"
                                "interacting_residues"]]
 
     ids_filename = get_id_filename(pdb_id)
@@ -225,15 +231,25 @@ def process_database_single(pdb_id, fragment_length):
         cdr_indices_str = ",".join(map(str, cdr_indices))
         cdr_residues = [ids.loc[index, 2] for index in cdr_indices]
         cdr_residues_str = "".join(cdr_residues)
+        cdr_pdb_indices = [ids.loc[index, 1] for index in cdr_indices]
+        cdr_pdb_indices_str = ",".join(map(str, cdr_pdb_indices))
+        cdr_chain = ids.loc[cdr_indices[0], 0]
 
         interacting_indices = bp[1]
         interacting_indices_str = ",".join(map(str, interacting_indices))
         interacting_residues = [ids.loc[index, 2] for index in interacting_indices]
         interacting_residues_str = "".join(interacting_residues)
+        interacting_pdb_indices = [ids.loc[index, 1] for index in interacting_indices]
+        interacting_pdb_indices_str = ",".join(map(str, interacting_pdb_indices))
+        interacting_chain = ids.loc[interacting_indices[0], 0]
 
         bound_pairs_all.append([cdr_indices_str,
+                                cdr_chain,
+                                cdr_pdb_indices_str,
                                 cdr_residues_str,
                                 interacting_indices_str,
+                                interacting_chain,
+                                interacting_pdb_indices_str,
                                 interacting_residues_str])
 
         interacting_fragments = find_contiguous_fragments(interacting_indices,
@@ -244,10 +260,18 @@ def process_database_single(pdb_id, fragment_length):
             interacting_fragment_str = ",".join(map(str, interacting_fragment))
             interacting_fragment_residues = [ids.loc[index, 2] for index in interacting_fragment]
             interacting_fragment_residues_str = "".join(interacting_fragment_residues)
+            interacting_fragment_pdb_indices = [ids.loc[index, 1] for index in interacting_fragment]
+            interacting_fragment_pdb_indices_str = ",".join(map(str,
+                                                                interacting_fragment_pdb_indices))
+            interacting_fragment_chain = ids.loc[interacting_fragment[0], 0]
 
             bound_pairs_fragmented.append([cdr_indices_str,
+                                           cdr_chain,
+                                           cdr_pdb_indices_str,
                                            cdr_residues_str,
                                            interacting_fragment_str,
+                                           interacting_fragment_chain,
+                                           interacting_fragment_pdb_indices_str,
                                            interacting_fragment_residues_str])
 
     all_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
@@ -273,9 +297,10 @@ def process_database(ids_list, fragment_length):
         process_database_single(pdb_id, fragment_length)
 
 if __name__ == "__main__":
-    random.seed(42)
-    # Choose random pdb_ids to work with
-    random_matrix_files = random.sample(os.listdir(MATRIX_DIR), k=1)
-    random_ids = [filename.split("_")[0] for filename in random_matrix_files]
+    # Generate random order using `ls /sharedscratch/kcn25/icMatrix/ |sort -R > random_order.txt`
+    with open("random_order.txt") as filelist:
+        random_matrix_files = filelist.readlines()
 
-    process_database(random_ids, 4)
+    random_ids = [filename.split("_")[0] for filename in random_matrix_files[:1000]]
+
+    process_database(random_ids, fragment_length=4)
