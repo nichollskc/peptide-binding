@@ -89,7 +89,7 @@ def find_contiguous_fragments(indices, ids_filename, max_gap=3):
 
     ids = pandas.read_csv(ids_filename, sep=" ", header=None)
 
-    if indices.size:
+    if indices:
         # Build up each fragment element by element, starting a new fragment
         #   when the next element isn't compatible with the current fragment
         #   either because there is too big a gap between residue numbers or
@@ -135,7 +135,12 @@ def find_interactor_indices(matrix, cdr_indices):
     Returns:
         array: array of indices that interact with any of the indices of CDR.
     """
-    interactor_indices = ((matrix[cdr_indices, :] < 0).sum(axis=0) > 0).nonzero()
+    interactor_indices_np = ((matrix[cdr_indices, :] < 0).sum(axis=0) > 0).nonzero()
+    interactor_indices = list(interactor_indices_np[0])
+
+    for index in cdr_indices:
+        if index in interactor_indices:
+            interactor_indices.remove(index)
 
     return interactor_indices
 
@@ -221,7 +226,7 @@ def process_database_single(pdb_id, fragment_length):
         cdr_residues = [ids.loc[index, 2] for index in cdr_indices]
         cdr_residues_str = "".join(cdr_residues)
 
-        interacting_indices = bp[1][0]
+        interacting_indices = bp[1]
         interacting_indices_str = ",".join(map(str, interacting_indices))
         interacting_residues = [ids.loc[index, 2] for index in interacting_indices]
         interacting_residues_str = "".join(interacting_residues)
@@ -249,14 +254,14 @@ def process_database_single(pdb_id, fragment_length):
                              pdb_id +
                              "bound_pairs_all.csv")
     with open(all_residues_filename, 'w') as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerows(bound_pairs_all)
 
     fragmented_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
                                     pdb_id +
                                     "bound_pairs_fragmented.csv")
     with open(fragmented_residues_filename, 'w') as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerows(bound_pairs_fragmented)
 
 def process_database(ids_list, fragment_length):
@@ -270,7 +275,7 @@ def process_database(ids_list, fragment_length):
 if __name__ == "__main__":
     random.seed(42)
     # Choose random pdb_ids to work with
-    random_matrix_files = random.sample(os.listdir(MATRIX_DIR), k=2)
+    random_matrix_files = random.sample(os.listdir(MATRIX_DIR), k=1)
     random_ids = [filename.split("_")[0] for filename in random_matrix_files]
 
     process_database(random_ids, 4)

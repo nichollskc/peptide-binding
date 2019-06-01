@@ -39,9 +39,9 @@ def investigate_interaction_distributions_single(pdb_id, fragment_length):
     num_total_kmers = matrix.shape[0] - fragment_length + 1
     proportion_cdrs = num_cdrs / num_total_kmers
 
-    interactor_lengths = [len(bp[1][0]) for bp in binding_pairs]
+    interactor_lengths = [len(bp[1]) for bp in binding_pairs]
 
-    interactor_fragments = [con_dat.find_contiguous_fragments(bp[1][0],
+    interactor_fragments = [con_dat.find_contiguous_fragments(bp[1],
                                                               con_dat.get_id_filename(pdb_id))
                             for bp in binding_pairs]
     num_interactor_fragments = [len(fragments) for fragments in interactor_fragments]
@@ -132,4 +132,4 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
     plt.show()
 
 if __name__ == "__main__":
-    plot_interaction_distributions_many(100, 4)
+    plot_interaction_distributions_many(100, 5)
