@@ -208,22 +208,22 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
     matrix = read_matrix_from_file(pdb_id)
     bind_pairs = find_all_binding_pairs_indices(matrix, fragment_length)
 
-    bound_pairs_all = [["cdr_indices",
+    bound_pairs_all = [["cdr_residues",
+                        "cdr_indices",
                         "cdr_chain",
                         "cdr_pdb_indices",
-                        "cdr_residues",
+                        "target_residues",
                         "target_indices",
                         "target_chain",
-                        "target_pdb_indices"
-                        "target_residues"]]
-    bound_pairs_fragmented = [["cdr_indices",
+                        "target_pdb_indices"]]
+    bound_pairs_fragmented = [["cdr_residues",
+                               "cdr_indices",
                                "cdr_chain",
                                "cdr_pdb_indices",
-                               "cdr_residues",
+                               "target_residues",
                                "target_indices",
                                "target_chain",
-                               "target_pdb_indices"
-                               "target_residues"]]
+                               "target_pdb_indices"]]
 
     ids_filename = get_id_filename(pdb_id)
     ids = pandas.read_csv(ids_filename, sep=" ", header=None)
@@ -245,14 +245,14 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
         target_pdb_indices_str = ",".join(map(str, target_pdb_indices))
         target_chain = ids.loc[target_indices[0], 0]
 
-        bound_pairs_all.append([cdr_indices_str,
+        bound_pairs_all.append([cdr_residues_str,
+                                cdr_indices_str,
                                 cdr_chain,
                                 cdr_pdb_indices_str,
-                                cdr_residues_str,
+                                target_residues_str,
                                 target_indices_str,
                                 target_chain,
-                                target_pdb_indices_str,
-                                target_residues_str])
+                                target_pdb_indices_str])
 
         if do_fragment_target:
             target_fragments = find_contiguous_fragments(target_indices,
@@ -270,14 +270,14 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
                                                                target_fragment_pdb_indices))
                 target_fragment_chain = ids.loc[target_fragment[0], 0]
 
-                bound_pairs_fragmented.append([cdr_indices_str,
+                bound_pairs_fragmented.append([cdr_residues_str,
+                                               cdr_indices_str,
                                                cdr_chain,
                                                cdr_pdb_indices_str,
-                                               cdr_residues_str,
+                                               target_fragment_residues_str,
                                                target_fragment_str,
                                                target_fragment_chain,
-                                               target_fragment_pdb_indices_str,
-                                               target_fragment_residues_str])
+                                               target_fragment_pdb_indices_str])
 
     all_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
                              pdb_id +
