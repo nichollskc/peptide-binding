@@ -190,17 +190,20 @@ def find_all_binding_pairs_indices(matrix, fragment_length):
 
 # Disable pylint warning about too many local variables for this function
 #pylint: disable-msg=too-many-locals
-def process_database_single(pdb_id, fragment_length):
+def process_database_single(pdb_id, fragment_length, do_fragment_target):
     """Finds all CDR-like fragments of the given length in the interaction
     matrix for the given pdb_id. Additionally the residues these fragments
     interact with.
 
     Writes the following out to file for each fragment found:
-    cdr_indices, cdr_residues, all_interacting_indices, all_interacting_residues
+    cdr indices, chain, indices in PDB file, residue names
+    same for the whole region of interacting residues
 
-    Finds contiguous fragments in the interacting residues and for each
-    contiguous fragment, writes the following out to file:
-    cdr_indices, cdr_residues, fragment_interacting_indices, fragment_interacting_residues
+    If do_fragment_target is True, then also finds contiguous fragments in the
+    interacting residues and for each contiguous fragment, writes the following
+    out to file:
+    cdr indices, chain, indices in PDB file, residue names
+    same for fragment of interacting residues
     """
     matrix = read_matrix_from_file(pdb_id)
     bind_pairs = find_all_binding_pairs_indices(matrix, fragment_length)
@@ -252,27 +255,30 @@ def process_database_single(pdb_id, fragment_length):
                                 interacting_pdb_indices_str,
                                 interacting_residues_str])
 
-        interacting_fragments = find_contiguous_fragments(interacting_indices,
-                                                          ids_filename,
-                                                          max_gap=2)
+        if do_fragment_target:
+            interacting_fragments = find_contiguous_fragments(interacting_indices,
+                                                              ids_filename,
+                                                              max_gap=2)
 
-        for interacting_fragment in interacting_fragments:
-            interacting_fragment_str = ",".join(map(str, interacting_fragment))
-            interacting_fragment_residues = [ids.loc[index, 2] for index in interacting_fragment]
-            interacting_fragment_residues_str = "".join(interacting_fragment_residues)
-            interacting_fragment_pdb_indices = [ids.loc[index, 1] for index in interacting_fragment]
-            interacting_fragment_pdb_indices_str = ",".join(map(str,
-                                                                interacting_fragment_pdb_indices))
-            interacting_fragment_chain = ids.loc[interacting_fragment[0], 0]
+            for interacting_fragment in interacting_fragments:
+                interacting_fragment_str = ",".join(map(str, interacting_fragment))
+                interacting_fragment_residues = [ids.loc[index, 2]
+                                                 for index in interacting_fragment]
+                interacting_fragment_residues_str = "".join(interacting_fragment_residues)
+                interacting_fragment_pdb_indices = [ids.loc[index, 1]
+                                                    for index in interacting_fragment]
+                interacting_fragment_pdb_indices_str = ",".join(map(str,
+                                                                    interacting_fragment_pdb_indices))
+                interacting_fragment_chain = ids.loc[interacting_fragment[0], 0]
 
-            bound_pairs_fragmented.append([cdr_indices_str,
-                                           cdr_chain,
-                                           cdr_pdb_indices_str,
-                                           cdr_residues_str,
-                                           interacting_fragment_str,
-                                           interacting_fragment_chain,
-                                           interacting_fragment_pdb_indices_str,
-                                           interacting_fragment_residues_str])
+                bound_pairs_fragmented.append([cdr_indices_str,
+                                               cdr_chain,
+                                               cdr_pdb_indices_str,
+                                               cdr_residues_str,
+                                               interacting_fragment_str,
+                                               interacting_fragment_chain,
+                                               interacting_fragment_pdb_indices_str,
+                                               interacting_fragment_residues_str])
 
     all_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
                              pdb_id +
@@ -281,20 +287,21 @@ def process_database_single(pdb_id, fragment_length):
         writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerows(bound_pairs_all)
 
-    fragmented_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
-                                    pdb_id +
-                                    "bound_pairs_fragmented.csv")
-    with open(fragmented_residues_filename, 'w') as f:
-        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-        writer.writerows(bound_pairs_fragmented)
+    if do_fragment_target:
+        fragmented_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
+                                        pdb_id +
+                                        "bound_pairs_fragmented.csv")
+        with open(fragmented_residues_filename, 'w') as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerows(bound_pairs_fragmented)
 
-def process_database(ids_list, fragment_length):
+def process_database(ids_list, fragment_length, do_fragment_target):
     """Finds all CDR-like fragments of the given length in the files listed in
     the array ids_list. Additionally finds the residues these fragments interact
     with. Outputs all finds to files, with separate files for each pdb_id.
     """
     for pdb_id in ids_list:
-        process_database_single(pdb_id, fragment_length)
+        process_database_single(pdb_id, fragment_length, do_fragment_target)
 
 if __name__ == "__main__":
     # Generate random order using `ls /sharedscratch/kcn25/icMatrix/ |sort -R > random_order.txt`
@@ -303,4 +310,4 @@ if __name__ == "__main__":
 
     random_ids = [filename.split("_")[0] for filename in random_matrix_files[:1000]]
 
-    process_database(random_ids, fragment_length=4)
+    process_database(random_ids, fragment_length=4, do_fragment_target=False)
