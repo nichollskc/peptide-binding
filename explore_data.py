@@ -29,7 +29,7 @@ def investigate_interaction_distributions_single(pdb_id, fragment_length):
             labelled as CDR-like
         array[int]: for each CDR-like fragment, number of residues labelled as
             interacting with residues in the fragment
-        array[int]: for each CDR-like fragment, if we split the interacting
+        array[int]: for each CDR-like fragment, if we split the target
             residues into contiguous fragments, how many fragments do we have?
         array[int]: lengths of each contiguous fragment as described above
     """
@@ -41,22 +41,23 @@ def investigate_interaction_distributions_single(pdb_id, fragment_length):
     num_total_kmers = matrix.shape[0] - fragment_length + 1
     proportion_cdrs = num_cdrs / num_total_kmers
 
-    interactor_lengths = [len(bp[1]) for bp in binding_pairs]
+    target_lengths = [len(bp[1]) for bp in binding_pairs]
 
-    interactor_fragments = [con_dat.find_contiguous_fragments(bp[1],
-                                                              con_dat.get_id_filename(pdb_id))
-                            for bp in binding_pairs]
-    num_interactor_fragments = [len(fragments) for fragments in interactor_fragments]
-    sizes_interactor_fragments = [len(fragment)
-                                  for fragments in interactor_fragments
-                                  for fragment in fragments]
+    target_fragments = [con_dat.find_contiguous_fragments(bp[1],
+                                                          con_dat.get_id_filename(pdb_id))
+                        for bp in binding_pairs]
+
+    num_target_fragments = [len(fragments) for fragments in target_fragments]
+    sizes_target_fragments = [len(fragment)
+                              for fragments in target_fragments
+                              for fragment in fragments]
 
     results = {}
     results['proportion_cdrs'] = proportion_cdrs
     results['num_cdrs'] = num_cdrs
-    results['interactor_lengths'] = interactor_lengths
-    results['num_interactor_fragments'] = num_interactor_fragments
-    results['sizes_interactor_fragments'] = sizes_interactor_fragments
+    results['target_lengths'] = target_lengths
+    results['num_target_fragments'] = num_target_fragments
+    results['sizes_target_fragments'] = sizes_target_fragments
     results['cdr_observation_counts'] = list(np.diagonal(matrix, offset=3))
     return results
 
@@ -69,30 +70,30 @@ def plot_interaction_distributions_single(pdb_id, fragment_length):
     print(results['num_cdrs'])
     print(results['proportion_cdrs'])
 
-    sns.distplot(results['interactor_lengths'], norm_hist=True)
-    plt.title("Size of interacting region")
-    plt.xlabel("Number of residues interacting with CDR-like fragment")
+    sns.distplot(results['target_lengths'], norm_hist=True)
+    plt.title("Size of target region")
+    plt.xlabel("Number of residues target with CDR-like fragment")
     plt.ylabel("Density")
-    save_plot("3cuq_interactor_lengths.png")
+    save_plot("3cuq_target_lengths.png")
     plt.clf()
 
-    sns.distplot(results['num_interactor_fragments'], norm_hist=True)
-    plt.title("Number of interacting fragments")
+    sns.distplot(results['num_target_fragments'], norm_hist=True)
+    plt.title("Number of target fragments")
     plt.xlabel("Number of contiguous fragments interacting with CDR-like fragment")
     plt.ylabel("Density")
-    save_plot("3cuq_num_interactor_fragments.png")
+    save_plot("3cuq_num_target_fragments.png")
     plt.clf()
 
-    sns.distplot(results['sizes_interactor_fragments'], norm_hist=True)
-    plt.title("Sizes of interacting fragments")
+    sns.distplot(results['sizes_target_fragments'], norm_hist=True)
+    plt.title("Sizes of target fragments")
     plt.xlabel("Size of contiguous fragments interacting with CDR-like fragment")
     plt.ylabel("Density")
-    save_plot("3cuq_sizes_interactor_fragments.png")
+    save_plot("3cuq_sizes_target_fragments.png")
     plt.clf()
 
 def plot_combined_interaction_distributions(combined_results):
     """Plot the combined results from analysing distribution of length and
-    fragment size of interacting residues in multiple interaction matrices."""
+    fragment size of target residues in multiple interaction matrices."""
 
     plt.clf()
     dummy_fig, ax = plt.subplots()
@@ -106,27 +107,27 @@ def plot_combined_interaction_distributions(combined_results):
 
     plt.clf()
     dummy_fig, ax = plt.subplots()
-    sns.distplot(combined_results['interactor_lengths'], ax=ax)
-    ax.set_title("Size of interacting region")
+    sns.distplot(combined_results['target_lengths'], ax=ax)
+    ax.set_title("Size of target region")
     ax.set_xlabel("Number of residues interacting with CDR-like fragment")
     ax.set_ylabel("Density")
-    save_plot("../plots/interactor_lengths.png")
+    save_plot("../plots/target_lengths.png")
 
     plt.clf()
     dummy_fig, ax = plt.subplots()
-    sns.distplot(combined_results['num_interactor_fragments'], ax=ax)
-    ax.set_title("Number of contiguous interacting fragments for each CDR-like fragment")
-    ax.set_xlabel("Number of contiguous interacting fragments")
+    sns.distplot(combined_results['num_target_fragments'], ax=ax)
+    ax.set_title("Number of contiguous target fragments for each CDR-like fragment")
+    ax.set_xlabel("Number of contiguous target fragments")
     ax.set_ylabel("Density")
-    save_plot("../plots/num_interactor_fragments.png")
+    save_plot("../plots/num_target_fragments.png")
 
     plt.clf()
     dummy_fig, ax = plt.subplots()
-    sns.distplot(combined_results['sizes_interactor_fragments'], ax=ax)
-    ax.set_title("Lengths of contiguous interacting fragments")
-    ax.set_xlabel("Length of interacting fragment")
+    sns.distplot(combined_results['sizes_target_fragments'], ax=ax)
+    ax.set_title("Lengths of contiguous target fragments")
+    ax.set_xlabel("Length of target fragment")
     ax.set_ylabel("Density")
-    save_plot("../plots/sizes_interactor_fragments.png")
+    save_plot("../plots/sizes_target_fragments.png")
 
     plt.clf()
     dummy_fig, ax = plt.subplots()
@@ -137,7 +138,7 @@ def plot_combined_interaction_distributions(combined_results):
     save_plot("../plots/cdr_observation_counts.png")
 
 def plot_interaction_distributions_many(num_to_plot, fragment_length):
-    """Investigates distribution of interacting fragments of many protein files.
+    """Investigates distribution of target fragments of many protein files.
     Chooses num_to_plot random files from con_dat.MATRIX_DIR and runs
     investigate_interaction_distributions_single on each, collates and plots the
     results of these analysis methods."""
@@ -151,9 +152,9 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
                         'num_to_plot': num_to_plot,
                         'proportions_cdrs': [],
                         'num_cdrs': [],
-                        'interactor_lengths': [],
-                        'num_interactor_fragments': [],
-                        'sizes_interactor_fragments': [],
+                        'target_lengths': [],
+                        'num_target_fragments': [],
+                        'sizes_target_fragments': [],
                         'cdr_observation_counts': []}
 
     fig_l, ax_l = plt.subplots()
@@ -164,13 +165,13 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
         results = investigate_interaction_distributions_single(pdb_id,
                                                                fragment_length)
 
-        sns.distplot(results['interactor_lengths'], norm_hist=True, ax=ax_l)
-        sns.distplot(results['num_interactor_fragments'], norm_hist=True, ax=ax_n)
-        sns.distplot(results['sizes_interactor_fragments'], norm_hist=True, ax=ax_s)
+        sns.distplot(results['target_lengths'], norm_hist=True, ax=ax_l)
+        sns.distplot(results['num_target_fragments'], norm_hist=True, ax=ax_n)
+        sns.distplot(results['sizes_target_fragments'], norm_hist=True, ax=ax_s)
 
-        combined_results['interactor_lengths'].extend(results['interactor_lengths'])
-        combined_results['num_interactor_fragments'].extend(results['num_interactor_fragments'])
-        combined_results['sizes_interactor_fragments'].extend(results['sizes_interactor_fragments'])
+        combined_results['target_lengths'].extend(results['target_lengths'])
+        combined_results['num_target_fragments'].extend(results['num_target_fragments'])
+        combined_results['sizes_target_fragments'].extend(results['sizes_target_fragments'])
 
         combined_results['proportions_cdrs'].append(results['proportion_cdrs'])
         combined_results['num_cdrs'].append(results['num_cdrs'])
@@ -186,20 +187,20 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
 
     print("Total number of CDRs found: ", sum(combined_results['num_cdrs']))
 
-    ax_l.set_title("Size of interacting region")
+    ax_l.set_title("Size of target region")
     ax_l.set_xlabel("Number of residues interacting with CDR-like fragment")
     ax_l.set_ylabel("Density")
-    fig_l.savefig("../plots/individual_interactor_lengths.png")
+    fig_l.savefig("../plots/individual_target_lengths.png")
 
-    ax_n.set_title("Number of contiguous interacting fragments for each CDR-like fragment")
-    ax_n.set_xlabel("Number of contiguous interacting fragments")
+    ax_n.set_title("Number of contiguous target fragments for each CDR-like fragment")
+    ax_n.set_xlabel("Number of contiguous target fragments")
     ax_n.set_ylabel("Density")
-    fig_n.savefig("../plots/individual_num_interactor_fragments.png")
+    fig_n.savefig("../plots/individual_num_target_fragments.png")
 
-    ax_s.set_title("Lengths of contiguous interacting fragments")
-    ax_s.set_xlabel("Length of interacting fragment")
+    ax_s.set_title("Lengths of contiguous target fragments")
+    ax_s.set_xlabel("Length of target fragment")
     ax_s.set_ylabel("Density")
-    fig_s.savefig("../plots/individual_sizes_interactor_fragments.png")
+    fig_s.savefig("../plots/individual_sizes_target_fragments.png")
 
     plot_combined_interaction_distributions(combined_results)
 

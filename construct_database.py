@@ -120,7 +120,7 @@ def find_contiguous_fragments(indices, ids_filename, max_gap=3):
 
     return fragments
 
-def find_interactor_indices(matrix, cdr_indices):
+def find_target_indices(matrix, cdr_indices):
     """
     Finds all indices that interact with the given CDR according to the matrix.
 
@@ -133,14 +133,14 @@ def find_interactor_indices(matrix, cdr_indices):
     Returns:
         array: array of indices that interact with any of the indices of CDR.
     """
-    interactor_indices_np = ((matrix[cdr_indices, :] < 0).sum(axis=0) > 0).nonzero()
-    interactor_indices = list(interactor_indices_np[0])
+    target_indices_np = ((matrix[cdr_indices, :] < 0).sum(axis=0) > 0).nonzero()
+    target_indices = list(target_indices_np[0])
 
     for index in cdr_indices:
-        if index in interactor_indices:
-            interactor_indices.remove(index)
+        if index in target_indices:
+            target_indices.remove(index)
 
-    return interactor_indices
+    return target_indices
 
 def find_all_binding_pairs_indices(matrix, fragment_length):
     """
@@ -158,7 +158,7 @@ def find_all_binding_pairs_indices(matrix, fragment_length):
             CDR-like fragment and the second is an array of indices that
             interact with those indices.
             The CDR-like fragment will contain have length precisely
-            fragment_length, but the interacting indices may not be this length.
+            fragment_length, but the target indices may not be this length.
 
     The interaction matrix tells us which fragments are CDR-like and also which
     residues interact. If M_{x,y} is negative then the residue x interacts with
@@ -181,9 +181,9 @@ def find_all_binding_pairs_indices(matrix, fragment_length):
             # Get the indices belonging to this fragment - note range() excludes
             #   second number given
             cdr_indices = list(range(start_index, end_index + 1))
-            interactor_indices = find_interactor_indices(matrix, cdr_indices)
+            target_indices = find_target_indices(matrix, cdr_indices)
 
-            binding_pair = [cdr_indices, interactor_indices]
+            binding_pair = [cdr_indices, target_indices]
             binding_pairs.append(binding_pair)
 
     return binding_pairs
@@ -197,13 +197,13 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
 
     Writes the following out to file for each fragment found:
     cdr indices, chain, indices in PDB file, residue names
-    same for the whole region of interacting residues
+    same for the whole region of target residues
 
     If do_fragment_target is True, then also finds contiguous fragments in the
-    interacting residues and for each contiguous fragment, writes the following
+    target residues and for each contiguous fragment, writes the following
     out to file:
     cdr indices, chain, indices in PDB file, residue names
-    same for fragment of interacting residues
+    same for fragment of target residues
     """
     matrix = read_matrix_from_file(pdb_id)
     bind_pairs = find_all_binding_pairs_indices(matrix, fragment_length)
@@ -212,24 +212,23 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
                         "cdr_chain",
                         "cdr_pdb_indices",
                         "cdr_residues",
-                        "interacting_indices",
-                        "interacting_chain",
-                        "interacting_pdb_indices"
-                        "interacting_residues"]]
+                        "target_indices",
+                        "target_chain",
+                        "target_pdb_indices"
+                        "target_residues"]]
     bound_pairs_fragmented = [["cdr_indices",
                                "cdr_chain",
                                "cdr_pdb_indices",
                                "cdr_residues",
-                               "interacting_indices",
-                               "interacting_chain",
-                               "interacting_pdb_indices"
-                               "interacting_residues"]]
+                               "target_indices",
+                               "target_chain",
+                               "target_pdb_indices"
+                               "target_residues"]]
 
     ids_filename = get_id_filename(pdb_id)
     ids = pandas.read_csv(ids_filename, sep=" ", header=None)
 
     for bp in bind_pairs:
-        # Write out cdr fragment, interacting indices, pdb_id
         cdr_indices = bp[0]
         cdr_indices_str = ",".join(map(str, cdr_indices))
         cdr_residues = [ids.loc[index, 2] for index in cdr_indices]
@@ -238,47 +237,47 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
         cdr_pdb_indices_str = ",".join(map(str, cdr_pdb_indices))
         cdr_chain = ids.loc[cdr_indices[0], 0]
 
-        interacting_indices = bp[1]
-        interacting_indices_str = ",".join(map(str, interacting_indices))
-        interacting_residues = [ids.loc[index, 2] for index in interacting_indices]
-        interacting_residues_str = "".join(interacting_residues)
-        interacting_pdb_indices = [ids.loc[index, 1] for index in interacting_indices]
-        interacting_pdb_indices_str = ",".join(map(str, interacting_pdb_indices))
-        interacting_chain = ids.loc[interacting_indices[0], 0]
+        target_indices = bp[1]
+        target_indices_str = ",".join(map(str, target_indices))
+        target_residues = [ids.loc[index, 2] for index in target_indices]
+        target_residues_str = "".join(target_residues)
+        target_pdb_indices = [ids.loc[index, 1] for index in target_indices]
+        target_pdb_indices_str = ",".join(map(str, target_pdb_indices))
+        target_chain = ids.loc[target_indices[0], 0]
 
         bound_pairs_all.append([cdr_indices_str,
                                 cdr_chain,
                                 cdr_pdb_indices_str,
                                 cdr_residues_str,
-                                interacting_indices_str,
-                                interacting_chain,
-                                interacting_pdb_indices_str,
-                                interacting_residues_str])
+                                target_indices_str,
+                                target_chain,
+                                target_pdb_indices_str,
+                                target_residues_str])
 
         if do_fragment_target:
-            interacting_fragments = find_contiguous_fragments(interacting_indices,
-                                                              ids_filename,
-                                                              max_gap=2)
+            target_fragments = find_contiguous_fragments(target_indices,
+                                                         ids_filename,
+                                                         max_gap=2)
 
-            for interacting_fragment in interacting_fragments:
-                interacting_fragment_str = ",".join(map(str, interacting_fragment))
-                interacting_fragment_residues = [ids.loc[index, 2]
-                                                 for index in interacting_fragment]
-                interacting_fragment_residues_str = "".join(interacting_fragment_residues)
-                interacting_fragment_pdb_indices = [ids.loc[index, 1]
-                                                    for index in interacting_fragment]
-                interacting_fragment_pdb_indices_str = ",".join(map(str,
-                                                                    interacting_fragment_pdb_indices))
-                interacting_fragment_chain = ids.loc[interacting_fragment[0], 0]
+            for target_fragment in target_fragments:
+                target_fragment_str = ",".join(map(str, target_fragment))
+                target_fragment_residues = [ids.loc[index, 2]
+                                            for index in target_fragment]
+                target_fragment_residues_str = "".join(target_fragment_residues)
+                target_fragment_pdb_indices = [ids.loc[index, 1]
+                                               for index in target_fragment]
+                target_fragment_pdb_indices_str = ",".join(map(str,
+                                                               target_fragment_pdb_indices))
+                target_fragment_chain = ids.loc[target_fragment[0], 0]
 
                 bound_pairs_fragmented.append([cdr_indices_str,
                                                cdr_chain,
                                                cdr_pdb_indices_str,
                                                cdr_residues_str,
-                                               interacting_fragment_str,
-                                               interacting_fragment_chain,
-                                               interacting_fragment_pdb_indices_str,
-                                               interacting_fragment_residues_str])
+                                               target_fragment_str,
+                                               target_fragment_chain,
+                                               target_fragment_pdb_indices_str,
+                                               target_fragment_residues_str])
 
     all_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
                              pdb_id +
