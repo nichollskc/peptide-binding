@@ -57,7 +57,7 @@ def investigate_interaction_distributions_single(pdb_id, fragment_length):
     results['interactor_lengths'] = interactor_lengths
     results['num_interactor_fragments'] = num_interactor_fragments
     results['sizes_interactor_fragments'] = sizes_interactor_fragments
-    results['cdr_observation_counts'] = np.diagonal(matrix, offset=3)[0]
+    results['cdr_observation_counts'] = list(np.diagonal(matrix, offset=3))
     return results
 
 def plot_interaction_distributions_single(pdb_id, fragment_length):
@@ -98,7 +98,7 @@ def plot_combined_interaction_distributions(combined_results):
     dummy_fig, ax = plt.subplots()
     sns.distplot(combined_results['proportions_cdrs'], ax=ax)
     ax.set_title("Proportion of fragments of length " +
-                 combined_results['fragment_length'] +
+                 str(combined_results['fragment_length']) +
                  " that are CDR-like")
     ax.set_xlabel("Proportion")
     ax.set_ylabel("Density")
@@ -176,8 +176,13 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
         combined_results['num_cdrs'].append(results['num_cdrs'])
         combined_results['cdr_observation_counts'].extend(results['cdr_observation_counts'])
 
+    def default(obj):
+        if isinstance(obj, np.int32):
+            return int(obj)
+        raise TypeError
+
     with open("/sharedscratch/kcn25/eda/interaction_distributions.json", "w") as f:
-        json.dump(combined_results, f)
+        json.dump(combined_results, f, default=default)
 
     print("Total number of CDRs found: ", sum(combined_results['num_cdrs']))
 
@@ -199,4 +204,4 @@ def plot_interaction_distributions_many(num_to_plot, fragment_length):
     plot_combined_interaction_distributions(combined_results)
 
 if __name__ == "__main__":
-    plot_interaction_distributions_many(100, 5)
+    plot_interaction_distributions_many(1000, 4)
