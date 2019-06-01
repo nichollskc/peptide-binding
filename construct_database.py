@@ -281,7 +281,7 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
 
     all_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
                              pdb_id +
-                             "bound_pairs_all.csv")
+                             "_bound_pairs_all.csv")
     with open(all_residues_filename, 'w') as f:
         writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerows(bound_pairs_all)
@@ -289,10 +289,16 @@ def process_database_single(pdb_id, fragment_length, do_fragment_target):
     if do_fragment_target:
         fragmented_residues_filename = ("/sharedscratch/kcn25/fragment_database/" +
                                         pdb_id +
-                                        "bound_pairs_fragmented.csv")
+                                        "_bound_pairs_fragmented.csv")
         with open(fragmented_residues_filename, 'w') as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
             writer.writerows(bound_pairs_fragmented)
+
+def read_bound_pairs(filename):
+    """Read a csv file containing bound pairs and return the csv"""
+    bound_pairs_df = pandas.read_csv(filename, header=0, index_col=None)
+
+    return bound_pairs_df
 
 def process_database(ids_list, fragment_length, do_fragment_target):
     """Finds all CDR-like fragments of the given length in the files listed in
