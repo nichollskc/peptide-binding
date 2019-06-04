@@ -40,8 +40,6 @@ rule split_dataset:
     #   use another to assess generalisation ability.
     input:
         'bound_pairs/fragmented/unique_bound_pairs.csv'
-    params:
-        data_groups=DATA_GROUPS
     output:
         'bound_pairs/fragmented/distance_matrix.npy',
         expand('dataset_raw/{data_group}/positive.csv',
