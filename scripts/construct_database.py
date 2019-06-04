@@ -473,9 +473,6 @@ def remove_duplicated_bound_pairs(workspace_root, filename=None):
     bound_pairs_no_duplicates = remove_duplicate_rows(all_bound_pairs,
                                                       ['cdr_residues', 'target_residues'])
 
-    print(all_bound_pairs.shape)
-    print(bound_pairs_no_duplicates.shape)
-
     if not filename:
         filename = os.path.join(workspace_root,
                                 "fragment_database/bound_pairs/unique_bound_pairs_fragmented.csv")
