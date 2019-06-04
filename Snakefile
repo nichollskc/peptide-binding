@@ -11,20 +11,25 @@ rule all:
 
 rule find_all_bound_pairs:
     input:
-        'icMatrix/{pdb_id}.bmat',
+        'icMatrix/{pdb_id}_icMat.bmat',
+        'IDs/{pdb_id}_ids.txt',
+        'cleanPDBs2/{pdb_id}.pdb',
+    params:
+        pdb_id='{pdb_id}',
+        cdr_fragment_length=4,
     output:
-        'bound_pairs_complete/bound_pairs_complete_{pdb_id}.csv',
-        'bound_pairs_fragmented/bound_pairs_fragmented_{pdb_id}.csv',
+        complete='bound_pairs/complete/individual/{pdb_id}.csv',
+        fragmented='bound_pairs/fragmented/individual/{pdb_id}.csv',
     script:
-        'scripts/find_all_bound_pairs.py',
+        'scripts/find_all_bound_pairs.py'
 
 rule find_unique_bound_pairs:
     input:
-        expand('bound_pairs_fragmented/bound_pairs_fragmented_{pdb_id}.csv',
+        expand('bound_pairs/fragmented/individual/{pdb_id}.csv',
                pdb_id=PDB_IDS)
     output:
-        'positive_datapoints/unique_bound_pairs.csv',
-        'positive_datapoints/fragments.csv',
+        'bound_pairs/fragmented/unique_bound_pairs.csv',
+        # 'bound_pairs/fragmented/fragments.csv',
     script:
         'scripts/find_unique_bound_pairs.py'
 
@@ -34,9 +39,11 @@ rule split_dataset:
     #   contain similar samples, so that we can e.g. learn with one group and
     #   use another to assess generalisation ability.
     input:
-        'bound_pairs_fragmented/unique_bound_pairs.csv'
+        'bound_pairs/fragmented/unique_bound_pairs.csv'
+    params:
+        data_groups=DATA_GROUPS
     output:
-        'output/distance_matrix.npy',
+        'bound_pairs/fragmented/distance_matrix.npy',
         expand('dataset_raw/{data_group}/positive.csv',
                data_group=DATA_GROUPS)
     script:
