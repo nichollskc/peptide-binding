@@ -1,5 +1,11 @@
 """Only works with snakemake.
 Finds all CDR-like fragments and the target fragments they interact with."""
+# pylint: disable=wrong-import-position
+import os
+import sys
+
+sys.path.append(os.environ.get('current_dir'))
+
 import scripts.construct_database as con_dat
 import scripts.query_pymol as query_pymol
 

@@ -13,9 +13,9 @@ rule all:
 
 rule find_all_bound_pairs:
     input:
-        ids=utils.get_id_filename({pdb_id}),
-        pdb=utils.get_pdb_filename({pdb_id}),
-        matrix=utils.get_matrix_filename({pdb_id})
+        ids=utils.get_id_filename('{pdb_id}'),
+        pdb=utils.get_pdb_filename('{pdb_id}'),
+        matrix=utils.get_matrix_filename('{pdb_id}')
     params:
         pdb_id='{pdb_id}',
         cdr_fragment_length=4,
