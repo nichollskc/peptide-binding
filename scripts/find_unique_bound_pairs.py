@@ -1,7 +1,7 @@
 """Only works with snakemake.
 Given a list of CDR-like fragments and the target fragments they interact with,
 removes duplicated pairs from the list."""
-import construct_database as con_dat
+import scripts.construct_database as con_dat
 
 filename_list = list(snakemake.input)
 

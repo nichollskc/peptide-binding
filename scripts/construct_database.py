@@ -1,42 +1,25 @@
 """Constructs database of interacting fragments."""
 
 import csv
-import glob
-import os
 
 import numpy as np
 import pandas as pd
 
-import query_pymol
-
-def get_id_filename(pdb_id, workspace_root):
-    """Given the pdb id, return the full filename for the IDs file."""
-    return os.path.join(workspace_root, "IDs/", pdb_id + "_ids.txt")
+import scripts.query_pymol as query_pymol
+import scripts.utils as utils
 
 
-def get_matrix_filename(pdb_id, workspace_root):
-    """Given the pdb id, return the full filename for the matrix file."""
-    return os.path.join(workspace_root, "icMatrix/", pdb_id + "_icMat.bmat")
-
-
-def get_pdb_filename(pdb_id, workspace_root):
-    """Given the pdb id, return the full filename for the PDB file."""
-    return os.path.join(workspace_root, "cleanPDBs2/", pdb_id + ".pdb")
-
-
-def read_matrix_from_file(pdb_id, workspace_root):
+def read_matrix_from_file(pdb_id):
     """Reads interaction matrix from file and return as np.array.
 
     Args:
         pdb_id (string): string of PDB ID e.g. "2zxx".
-        workspace_root (string): location of workspace for reading and
-            storing files
 
     Returns:
         np.array: interaction matrix as an np.array
     """
-    ids_filename = get_id_filename(pdb_id, workspace_root)
-    matrix_filename = get_matrix_filename(pdb_id, workspace_root)
+    ids_filename = utils.get_id_filename(pdb_id)
+    matrix_filename = utils.get_matrix_filename(pdb_id)
 
     # Read in residue IDs
     ids = pd.read_csv(ids_filename, sep=" ", header=None)
@@ -52,21 +35,19 @@ def read_matrix_from_file(pdb_id, workspace_root):
     return matrix
 
 
-def read_matrix_from_file_df(pdb_id, workspace_root):
+def read_matrix_from_file_df(pdb_id):
     """Read interaction matrix from file, label using IDs file and return as a
     data frame.
 
     Args:
         pdb_id (string): string of PDB ID e.g. "2zxx".
-        workspace_root (string): location of workspace for reading and
-            storing files
 
     Returns:
         pd.DataFrame: data frame containing the matrix, with labels given by
             the rows of the IDs file
     """
-    matrix = read_matrix_from_file(pdb_id, workspace_root)
-    ids_filename = get_id_filename(pdb_id, workspace_root)
+    matrix = read_matrix_from_file(pdb_id)
+    ids_filename = utils.get_id_filename(pdb_id)
 
     # Combine the three columns into one label for each residue
     ids = pd.read_csv(ids_filename, sep=" ", header=None)
@@ -123,7 +104,7 @@ def print_targets_to_file(bound_pairs, filename):
         writer.writerows(rows)
 
 
-def process_database_single(pdb_id, workspace_root, fragment_length):
+def find_bound_pairs(pdb_id, fragment_length):
     """Finds all CDR-like fragments of the given length in the interaction
     matrix for the given pdb_id. Additionally the residues these fragments
     interact with.
@@ -132,21 +113,13 @@ def process_database_single(pdb_id, workspace_root, fragment_length):
     each contiguous fragment, writes the following out to file:
     cdr indices, chain, indices in PDB file, residue names
     same for fragment of target residues
-
-    workspace_root (string): location of workspace for reading and
-            storing files
-
     """
-    matrix = read_matrix_from_file(pdb_id, workspace_root)
-    bound_pairs, bound_pairs_fragmented = find_all_binding_pairs(matrix,
-                                                                 pdb_id,
-                                                                 workspace_root,
-                                                                 fragment_length)
-    directory = os.path.join(workspace_root, "fragment_database/bound_pairs/individual")
-    print_targets_to_file(bound_pairs,
-                          os.path.join(directory, pdb_id + "_bound_pairs_all.csv"))
-    print_targets_to_file(bound_pairs_fragmented,
-                          os.path.join(directory, pdb_id + "_bound_pairs_fragmented.csv"))
+    matrix = read_matrix_from_file(pdb_id)
+    bound_pairs, bound_pairs_fragmented = query_pymol.find_all_binding_pairs(matrix,
+                                                                             pdb_id,
+                                                                             fragment_length)
+
+    return bound_pairs, bound_pairs_fragmented
 
 
 def read_bound_pairs(filename):
@@ -185,41 +158,28 @@ def remove_duplicate_rows(data_frame, columns):
     return no_duplicates
 
 
-def remove_duplicated_bound_pairs(workspace_root, filename=None):
-    """
-    Reads in all bound_pairs files from the workspace, combines into a csv file
-    after removing duplicated rows (based on sequence identify of both cdr and target).
-    Args:
-        workspace_root (string): directory where database is found
-        filename (string): file to write the table to, using None will cause it to
-            default to a location in the workspace.
-
-    Writes full table to file.
-    """
-    all_bound_pairs = combine_all_bound_pairs_fragmented(workspace_root)
-    bound_pairs_no_duplicates = remove_duplicate_rows(all_bound_pairs,
-                                                      ['cdr_residues', 'target_residues'])
-
-    if not filename:
-        filename = os.path.join(workspace_root,
-                                "fragment_database/bound_pairs/unique_bound_pairs_fragmented.csv")
-    bound_pairs_no_duplicates.to_csv(filename, header=True, index=None)
-
-
-def process_database(ids_list, workspace_root, fragment_length):
+def find_all_bound_pairs(ids_list, fragment_length):
     """Finds all CDR-like fragments of the given length in the files listed in
     the array ids_list. Additionally finds the residues these fragments interact
     with. Outputs all finds to files, with separate files for each pdb_id.
     """
     for pdb_id in ids_list:
-        process_database_single(pdb_id, workspace_root, fragment_length)
+        find_bound_pairs(pdb_id, fragment_length)
 
 
-if __name__ == "__main__":
-    # Generate random order using `ls /sharedscratch/kcn25/icMatrix/ |sort -R > random_order.txt`
-    with open("random_order.txt") as filelist:
-        random_matrix_files = filelist.readlines()
+def find_unique_bound_pairs(filename_list):
+    """
+    Reads in all bound_pairs files from the filename_list, combines into a csv file
+    after removing duplicated rows (based on sequence identify of both cdr and target).
+    Args:
+        filename_list (array): list of files containing bound_pairs
 
-    random_ids = [filename.split("_")[0] for filename in random_matrix_files[:1000]]
+    Returns:
+        pandas.DataFrame: data frame where each row is a bound pair and duplicates
+            have been removed
+    """
+    all_bound_pairs = combine_bound_pairs(filename_list)
+    bound_pairs_no_duplicates = remove_duplicate_rows(all_bound_pairs,
+                                                      ['cdr_residues', 'target_residues'])
 
-    process_database(random_ids, "/sharedscratch/kcn25/", fragment_length=4)
+    return bound_pairs_no_duplicates

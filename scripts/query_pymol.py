@@ -2,8 +2,10 @@
 import pandas as pd
 from pymol import cmd, stored       # pylint: disable-msg=no-name-in-module
 
+import scripts.utils as utils
 
-def find_all_binding_pairs(matrix, pdb_id, ids_filename, pdb_filename, fragment_length):
+
+def find_all_binding_pairs(matrix, pdb_id, fragment_length):
     """
     Finds all CDR-like regions of given length in the matrix, and also finds
     the residues the CDR-like regions interact by looking at PDB file.
@@ -12,9 +14,6 @@ def find_all_binding_pairs(matrix, pdb_id, ids_filename, pdb_filename, fragment_
         matrix (np.array): Interaction matrix where rows and columns both
             correspond to residues. Full description below.
         pdb_id (string): ID of protein in PDB e.g. '2xzz'
-        ids_filename (string): name of IDs file, the file that defines the index
-            of the matrix
-        pdb_filename (string): name of PDB file for this protein
         fragment_length (int): length of desired interacting pairs
 
     Returns:
@@ -39,9 +38,11 @@ def find_all_binding_pairs(matrix, pdb_id, ids_filename, pdb_filename, fragment_
     matrix_size = matrix.shape[0]
 
     # Read in IDs file to get pdb indices of these indices
+    ids_filename = utils.get_id_filename(pdb_id)
     ids_df = pd.read_csv(ids_filename, sep=" ", header=None)
 
     cmd.reinitialize()
+    pdb_filename = utils.get_pdb_filename(pdb_id)
     cmd.load(pdb_filename)
 
     all_bound_pairs = []

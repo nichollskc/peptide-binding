@@ -2,19 +2,19 @@
 # pylint: disable=missing-docstring
 # pylint: disable=no-self-use
 
-import os
 import unittest
 
 from pymol import cmd
 
-import query_pymol
+import scripts.query_pymol as query_pymol
+import scripts.utils as utils
 
 
 class Test(unittest.TestCase):
 
     def test_contiguous_fragments(self):
         cmd.reinitialize()
-        cmd.load(query_pymol.get_pdb_filename("3cuq", workspace_root))
+        cmd.load(utils.get_pdb_filename("3cuq"))
         residues = [('119', 'I', 'A'),
                     ('121', 'T', 'A'),
                     ('127', 'Q', 'A'),
@@ -58,6 +58,5 @@ class Test(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    workspace_root = ""
 
     unittest.main()

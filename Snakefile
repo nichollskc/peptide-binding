@@ -1,3 +1,5 @@
+import scripts.utils as utils
+
 PDB_IDS = ['3cuq', '1mhp']
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['cdrs', 'targets', 'combined', 'labels']
@@ -11,9 +13,9 @@ rule all:
 
 rule find_all_bound_pairs:
     input:
-        'icMatrix/{pdb_id}_icMat.bmat',
-        'IDs/{pdb_id}_ids.txt',
-        'cleanPDBs2/{pdb_id}.pdb',
+        ids=utils.get_id_filename({pdb_id}),
+        pdb=utils.get_pdb_filename({pdb_id}),
+        matrix=utils.get_matrix_filename({pdb_id})
     params:
         pdb_id='{pdb_id}',
         cdr_fragment_length=4,
