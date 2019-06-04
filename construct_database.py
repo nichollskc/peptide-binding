@@ -76,7 +76,7 @@ def read_matrix_from_file_df(pdb_id, workspace_root):
     return df
 
 
-def find_contiguous_fragments(residues, max_gap=1, min_fragment_length=3):
+def find_contiguous_fragments(residues, pdb_id, max_gap=1, min_fragment_length=3):
     """
     Splits a list of residues into contiguous fragments. The list should
     contain the one-letter codes for amino acids, PDB indices of residues
@@ -85,6 +85,8 @@ def find_contiguous_fragments(residues, max_gap=1, min_fragment_length=3):
     Args:
         residues (array): Each entry should be an array of the form
             [pdb_index, residue_one-letter, chain]
+        pdb_id (string): string of pdb_id, used to check if pymol
+            has loaded object
         max_gap (int): Maximum number of residues allowed to be missing
             in a fragment and it still be called contiguous. E.g. if max_gap=0
             then no gaps are allowed.
@@ -107,6 +109,9 @@ def find_contiguous_fragments(residues, max_gap=1, min_fragment_length=3):
     """
     fragments = []
 
+    assert cmd.get_object_list(selection='(all)') == [pdb_id], \
+        "No PDB file loaded prior to calling find_contiguous_fragments"
+
     if residues:
         # Build up each fragment element by element, starting a new fragment
         #   when the next element isn't compatible with the current fragment
@@ -127,14 +132,23 @@ def find_contiguous_fragments(residues, max_gap=1, min_fragment_length=3):
             gap = (new_index - current_index) - 1
             # If the gap is bigger than allowed or the chain has changed
             #   then we must start a new fragment
-            if new_chain != current_chain or gap >= max_gap:
+            if new_chain != current_chain or gap > max_gap:
                 # Add the completed fragment to the list of fragments if it is long enough
                 if len(working_fragment) >= min_fragment_length:
                     fragments.append(working_fragment)
                 # Start a new fragment
                 working_fragment = [target]
             else:
-                # TODO: If there is a gap, find the residues that should go in the gap
+                if gap:
+                    stored.list = []
+                    missing_residues_select_str = "(chain {} and resi {}-{} & n. ca)"\
+                                                  .format(new_chain,
+                                                          current_index + 1,
+                                                          new_index - 1)
+                    cmd.iterate(missing_residues_select_str,
+                                "stored.list.append((resi, oneletter, chain))")
+                    working_fragment.extend(stored.list)
+
                 working_fragment.append(target)
 
             current_chain = new_chain
@@ -237,7 +251,7 @@ def find_targets_from_pdb(cdr_indices, pdb_id, ids_df):
     else:
         bound_pairs = []
 
-    targets_fragmented = find_contiguous_fragments(targets['combined_list'])
+    targets_fragmented = find_contiguous_fragments(targets['combined_list'], pdb_id)
 
     bound_pairs_fragmented = []
     for fragment in targets_fragmented:
