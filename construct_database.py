@@ -372,7 +372,7 @@ def print_targets_to_file(bound_pairs, filename):
                      target['target_chain'],
                      target['target_pdb_indices']])
 
-    with open(filename, 'w') as f:
+    with open(filename, 'w+') as f:
         writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerows(rows)
 
@@ -396,7 +396,7 @@ def process_database_single(pdb_id, workspace_root, fragment_length):
                                                                  pdb_id,
                                                                  workspace_root,
                                                                  fragment_length)
-    directory = os.path.join(workspace_root, "fragment_database/bound_pairs")
+    directory = os.path.join(workspace_root, "fragment_database/bound_pairs/individual")
     print_targets_to_file(bound_pairs,
                           os.path.join(directory, pdb_id + "_bound_pairs_all.csv"))
     print_targets_to_file(bound_pairs_fragmented,
@@ -420,20 +420,66 @@ def combine_bound_pairs(filename_list):
     return combined_data_frame
 
 
-def combine_all_bound_pairs_fragmented():
+def combine_all_bound_pairs_fragmented(workspace_root):
     """Read in all files containing bound pairs where the target has been
     fragmented into contiguous fragments and combine into a single dataframe"""
-    fragmented_files = glob.glob("/sharedscratch/kcn25/fragment_database/*frag*")
+    fragmented_files = glob.glob(os.path.join(workspace_root,
+                                              "fragment_database/bound_pairs/individual/*frag*"))
     bound_pairs_fragmented = combine_bound_pairs(fragmented_files)
     return bound_pairs_fragmented
 
 
-def combine_all_bound_pairs_complete():
+def combine_all_bound_pairs_complete(workspace_root):
     """Read in all files containing bound pairs where the target is intact
     and combine all into a single dataframe"""
-    complete_files = glob.glob("/sharedscratch/kcn25/fragment_database/*all*")
+    complete_files = glob.glob(os.path.join(workspace_root,
+                                            "fragment_database/bound_pairs/individual/*all*"))
     bound_pairs_complete = combine_bound_pairs(complete_files)
     return bound_pairs_complete
+
+
+def remove_duplicate_rows(data_frame, columns):
+    """
+    Removes rows from the data frame if the values in all columns specified are the same.
+    The first duplicate of each set will be removed.
+
+    Args:
+        data_frame (pandas.DataFrame): data frame
+        columns (array): array of column names e.g. ['cdr_residues', 'target_residues']
+            rows must match on all the given columns to count as a duplicate
+
+    Returns:
+        pandas.DataFrame: data frame which is a copy of the original but with
+            duplicated rows removed.
+    """
+    row_is_duplicate = data_frame.duplicated(columns, keep='first')
+    no_duplicates = data_frame[~ row_is_duplicate]
+
+    return no_duplicates
+
+
+def remove_duplicated_bound_pairs(workspace_root, filename=None):
+    """
+    Reads in all bound_pairs files from the workspace, combines into a csv file
+    after removing duplicated rows (based on sequence identify of both cdr and target).
+    Args:
+        workspace_root (string): directory where database is found
+        filename (string): file to write the table to, using None will cause it to
+            default to a location in the workspace.
+
+    Writes full table to file.
+    """
+    all_bound_pairs = combine_all_bound_pairs_fragmented(workspace_root)
+    bound_pairs_no_duplicates = remove_duplicate_rows(all_bound_pairs,
+                                                      ['cdr_residues', 'target_residues'])
+
+    print(all_bound_pairs.shape)
+    print(bound_pairs_no_duplicates.shape)
+
+    if not filename:
+        filename = os.path.join(workspace_root,
+                                "fragment_database/bound_pairs/unique_bound_pairs_fragmented.csv")
+    bound_pairs_no_duplicates.to_csv(filename, header=True, index=None)
 
 
 def process_database(ids_list, workspace_root, fragment_length):
