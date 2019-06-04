@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "No tests run"
+coverage run test_construct_database.py
