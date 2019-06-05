@@ -23,4 +23,4 @@ install:
 script:
   - source activate snakemake
   # run the workflow
-- current_dir=$(pwd) snakemake --use-conda bound_pairs/fragmented/unique_bound_pairs.csv
+  - current_dir=$(pwd) snakemake --use-conda bound_pairs/fragmented/unique_bound_pairs.csv
