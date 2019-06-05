@@ -34,7 +34,6 @@ dependencies:
   - dropbox=9.3.0
   - expat=2.2.6
   - filechunkio=1.8
-  - fontconfig=2.13.1
   - freemol=1.158
   - freetype=2.9.1
   - fribidi=1.0.5
@@ -90,7 +89,6 @@ dependencies:
   - olefile=0.46
   - openssl=1.1.1b
   - pandas=0.24.2
-  - pango=1.42.4
   - paramiko=2.4.2
   - patsy=0.5.1
   - pcre=8.43
@@ -133,7 +131,6 @@ dependencies:
   - sip=4.19.8
   - six=1.12.0
   - smmap2=2.0.5
-  - snakemake=5.5.0
   - snakemake-minimal=5.5.0
   - sqlite=3.28.0
   - statsmodels=0.9.0
