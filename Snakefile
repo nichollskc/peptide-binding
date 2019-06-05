@@ -31,19 +31,24 @@ rule find_unique_bound_pairs:
                pdb_id=PDB_IDS)
     output:
         'bound_pairs/fragmented/unique_bound_pairs.csv',
-        # 'bound_pairs/fragmented/fragments.csv',
     script:
         'scripts/find_unique_bound_pairs.py'
 
-rule split_dataset:
-    # Calculate the distances between each bound pair and use this distance
-    #   matrix to split the samples into different groups. Each group should
-    #   contain similar samples, so that we can e.g. learn with one group and
-    #   use another to assess generalisation ability.
+rule distance_matrix:
     input:
-        'bound_pairs/fragmented/unique_bound_pairs.csv'
+        bound_pairs='bound_pairs/fragmented/unique_bound_pairs.csv',
     output:
+        distance_matrix='bound_pairs/fragmented/distance_matrix.npy',
+    script:
+        'scripts/generate_distance_matrix.py'
+
+rule split_dataset:
+    # Use this distance matrix to split the samples into different groups.
+    #   Each group should contain similar samples, so that we can e.g.
+    #   learn with one group and use another to assess generalisation ability.
+    input:
         'bound_pairs/fragmented/distance_matrix.npy',
+    output:
         expand('dataset_raw/{data_group}/positive.csv',
                data_group=DATA_GROUPS)
     script:
