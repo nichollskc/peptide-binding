@@ -1,4 +1,4 @@
-# Copied from https://github.com/snakemake-workflows/dna-seq-gatk-variant-calling/blob/master/.travis.yml
+# Adapted from https://github.com/snakemake-workflows/dna-seq-gatk-variant-calling/blob/master/.travis.yml
 language: python
 python:
   # We don't actually use the Travis Python, but this keeps it organized.
