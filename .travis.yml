@@ -21,6 +21,6 @@ install:
   - conda env create -f environment.yml
 
 script:
-  - source activate snakemake
+  - source activate rationaldesign
   # run the workflow
-  - current_dir=$(pwd) rationaldesign --use-conda bound_pairs/fragmented/unique_bound_pairs.csv
+  - current_dir=$(pwd) snakemake bound_pairs/fragmented/unique_bound_pairs.csv
