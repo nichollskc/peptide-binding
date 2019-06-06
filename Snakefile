@@ -25,7 +25,7 @@ DATA_GROUPS = ['training', 'test', 'validation']
 
 rule all:
     input:
-        expand('dataset/{data_group}_{data_type}.npy',
+        expand('processed/dataset/{data_group}_{data_type}.npy',
                data_group=DATA_GROUPS,
                data_type=DATA_TYPES)
 
@@ -40,8 +40,8 @@ rule find_all_bound_pairs:
         pdb_id='{pdb_id}',
         cdr_fragment_length=4,
     output:
-        complete='bound_pairs/complete/individual/{pdb_id}.csv',
-        fragmented='bound_pairs/fragmented/individual/{pdb_id}.csv',
+        complete='processed/bound_pairs/complete/individual/{pdb_id}.csv',
+        fragmented='processed/bound_pairs/fragmented/individual/{pdb_id}.csv',
     script:
         'scripts/find_all_bound_pairs.py'
 
@@ -51,27 +51,27 @@ for id_group, group_name in zip(GROUPED_IDS, GROUP_NAMES):
         #   this rule
     rule:
         input:
-            expand('bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
+            expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
         output:
-            touch('output/checks/' + group_name)
+            touch('processed/checks/' + group_name)
         group:
             'bound_pairs'
 
 rule find_unique_bound_pairs:
     input:
-        bound_pairs=expand('bound_pairs/fragmented/individual/{pdb_id}.csv',
+        bound_pairs=expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv',
                pdb_id=PDB_IDS),
-        group_names=expand('output/checks/{group_name}', group_name=GROUP_NAMES)
+        group_names=expand('processed/checks/{group_name}', group_name=GROUP_NAMES)
     output:
-        'bound_pairs/fragmented/unique_bound_pairs.csv',
+        'processed/bound_pairs/fragmented/unique_bound_pairs.csv',
     script:
         'scripts/find_unique_bound_pairs.py'
 
 rule distance_matrix:
     input:
-        bound_pairs='bound_pairs/fragmented/unique_bound_pairs.csv',
+        bound_pairs='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
     output:
-        distance_matrix='bound_pairs/fragmented/distance_matrix.npy',
+        distance_matrix='processed/bound_pairs/fragmented/distance_matrix.npy',
     script:
         'scripts/generate_distance_matrix.py'
 
@@ -80,9 +80,9 @@ rule split_dataset:
     #   Each group should contain similar samples, so that we can e.g.
     #   learn with one group and use another to assess generalisation ability.
     input:
-        'bound_pairs/fragmented/distance_matrix.npy',
+        'processed/bound_pairs/fragmented/distance_matrix.npy',
     output:
-        expand('dataset_raw/{data_group}/positive.csv',
+        expand('processed/dataset_raw/{data_group}/positive.csv',
                data_group=DATA_GROUPS)
     script:
         'scripts/split_dataset.py'
@@ -91,9 +91,9 @@ rule generate_negatives:
     # Within each group, permute cdrs and targets to generate (assumed) negative
     #   examples
     input:
-        'dataset_raw/{data_group}/positive.csv'
+        'processed/dataset_raw/{data_group}/positive.csv'
     output:
-        'dataset_raw/{data_group}/negative.csv'
+        'processed/dataset_raw/{data_group}/negative.csv'
     script:
         'scripts/generate_negatives.py'
 
@@ -101,10 +101,10 @@ rule generate_representations:
     # For each group, generate the representations for both positive and negative
     #   data, and also produce the labels file.
     input:
-         expand('dataset_raw/{{data_group}}/{label}.csv',
+         expand('processed/dataset_raw/{{data_group}}/{label}.csv',
                 label=LABELS)
     output:
-         expand('dataset/{{data_group}}/{data_type}.npy',
+         expand('processed/dataset/{{data_group}}/{data_type}.npy',
                 data_type=DATA_TYPES)
     script:
          'scripts/generate_representations.py'

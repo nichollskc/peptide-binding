@@ -120,11 +120,11 @@ def construct_bound_pair_dict(cdr_residues, target_residues):
                        for res in target_residues]
     target_bp_ids_str = get_compact_bp_id_string(target_residues)
 
-    bound_pairs = [{'cdr_resnames': "".join(cdr_resnames),
-                    'cdr_bp_id_str': cdr_bp_ids_str,
-                    'target_length': len(target_residues),
-                    'target_resnames': "".join(target_resnames),
-                    'target_bp_id_str': target_bp_ids_str}]
+    bound_pairs = {'cdr_resnames': "".join(cdr_resnames),
+                   'cdr_bp_id_str': cdr_bp_ids_str,
+                   'target_length': len(target_residues),
+                   'target_resnames': "".join(target_resnames),
+                   'target_bp_id_str': target_bp_ids_str}
     return bound_pairs
 
 
