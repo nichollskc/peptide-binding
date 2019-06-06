@@ -9,7 +9,7 @@ sys.path.append(os.environ.get('current_dir'))
 
 import scripts.construct_database as con_dat
 
-filename_list = list(snakemake.input)
+filename_list = list(snakemake.input.bound_pairs)
 
 all_bound_pairs = con_dat.combine_bound_pairs(filename_list)
 no_duplicates = con_dat.remove_duplicate_rows(all_bound_pairs,
