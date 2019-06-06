@@ -7,7 +7,7 @@ find . -iname "*.py" | xargs pylint --rcfile=.pylintrc
 PYLINT_RESULT=$?
 
 # Test prospective commit
-$(coverage run -m unittest discover -k SHORT)
+$(coverage run -m unittest discover -k test_short)
 TEST_RESULT=$?
 
 COVERAGE_RESULT=0

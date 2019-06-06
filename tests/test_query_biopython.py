@@ -7,25 +7,24 @@ import unittest
 import Bio.PDB
 
 import scripts.query_biopython as query_bp
-import scripts.utils as utils
 
 
 class Test(unittest.TestCase):
 
-    def test_SHORT_round_test_lazy_bp_id(self):
+    def test_short_round_test_compact_bp_id(self):
         parser = Bio.PDB.PDBParser()
         structure = parser.get_structure("3cuq", "cleanPDBs2/3cuq.pdb")
 
         all_residues = list(structure[0].get_residues())
         block = all_residues[2:5]
 
-        bp_id_string = query_bp.get_lazy_bp_id_string(block)
+        bp_id_string = query_bp.get_compact_bp_id_string(block)
 
-        result = query_bp.select_residues_from_lazy_bp_id_string(bp_id_string, structure)
+        result = query_bp.select_residues_from_compact_bp_id_string(bp_id_string, structure)
 
         self.assertEqual(result, block)
 
-    def test_SHORT_round_test_bp_id(self):
+    def test_short_round_test_bp_id(self):
         parser = Bio.PDB.PDBParser()
         structure = parser.get_structure("3cuq", "cleanPDBs2/3cuq.pdb")
 
@@ -38,7 +37,8 @@ class Test(unittest.TestCase):
 
         self.assertEqual(result, block)
 
-    def test_SHORT_contiguous_fragments(self):
+    # pylint: disable=too-many-locals
+    def test_short_contiguous_fragments(self):
         parser = Bio.PDB.PDBParser()
         structure = parser.get_structure("3cuq", "cleanPDBs2/3cuq.pdb")
 
@@ -53,8 +53,8 @@ class Test(unittest.TestCase):
         block_6 = [all_residues[633]]
         raw_residues = block_1 + block_2 + block_3 + block_4 + block_5 + block_6
 
-        sorted_res, sorted_res_z = query_bp.sort_bp_residues(raw_residues,
-                                                             all_residues)
+        unused_sorted_res, sorted_res_z = query_bp.sort_bp_residues(raw_residues,
+                                                                    all_residues)
 
         expected_03 = [block_1, block_3, block_4]
         fragments_03 = query_bp.find_contiguous_fragments(sorted_res_z,
