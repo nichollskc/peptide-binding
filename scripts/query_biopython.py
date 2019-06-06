@@ -33,6 +33,30 @@ def select_residues_from_bp_id_string(bp_id_string, structure):
     return residues
 
 
+def get_lazy_bp_id_string(residues):
+    """Take a list of Bio.PDB residue objects and return a string that contains
+    all the information needed to retrieve these objects from the structure
+    using select_residues_from_lazy_bp_id_string."""
+    if residues:
+        all_residues = list(residues[0].get_parent().get_parent().get_residues())
+        indices = [all_residues.index(res) for res in residues]
+    else:
+        indices = []
+
+    return json.dumps(indices)
+
+
+def select_residues_from_lazy_bp_id_string(bp_id_string, structure):
+    """Given a loaded Bio.PDB structure, select the residues specified by the
+    string, which should have been produced by get_lazy_bp_id_string."""
+    indices = json.loads(bp_id_string)
+
+    all_residues = list(structure[0].get_residues())
+    residues = [all_residues[ind] for ind in indices]
+
+    return residues
+
+
 def sort_bp_residues(bp_residues, all_residues):
     """Zips together the residues list with their indices in the full list of
     residues and returns this list, sorted by the indices."""
@@ -164,7 +188,7 @@ def find_targets_from_pdb(cdr_indices, ids_df, neighbor_search, all_residues):
     cdr_residues_from_bp = [all_residues[index] for index in cdr_indices]
     cdr_resnames_from_bp = [Bio.PDB.protein_letters_3to1[res.get_resname()]
                             for res in cdr_residues_from_bp]
-    cdr_bp_ids_str = get_full_bp_id_string(cdr_residues_from_bp)
+    cdr_bp_ids_str = get_lazy_bp_id_string(cdr_residues_from_bp)
 
     assert cdr_resnames_from_bp == list(cdr_resnames_from_ids),\
         "Residue names from ids list and Biopython parser should match"
@@ -180,7 +204,7 @@ def find_targets_from_pdb(cdr_indices, ids_df, neighbor_search, all_residues):
                                                                             all_residues)
         nearby_resnames = [Bio.PDB.protein_letters_3to1[res.get_resname()]
                            for res in sorted_nearby_residues]
-        target_bp_ids_str = get_full_bp_id_string(sorted_nearby_residues)
+        target_bp_ids_str = get_lazy_bp_id_string(sorted_nearby_residues)
 
         bound_pairs = [{'cdr_resnames': "".join(cdr_resnames_from_bp),
                         'cdr_bp_id_str': cdr_bp_ids_str,
@@ -193,7 +217,7 @@ def find_targets_from_pdb(cdr_indices, ids_df, neighbor_search, all_residues):
         for fragment in targets_fragmented:
             fragment_resnames = [Bio.PDB.protein_letters_3to1[res.get_resname()]
                                  for res in fragment]
-            fragment_bp_ids_str = get_full_bp_id_string(fragment)
+            fragment_bp_ids_str = get_lazy_bp_id_string(fragment)
 
             bound_pair_fragment = {'cdr_resnames': "".join(cdr_resnames_from_bp),
                                    'cdr_bp_id_str': cdr_bp_ids_str,
