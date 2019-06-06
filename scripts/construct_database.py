@@ -5,7 +5,7 @@ import csv
 import numpy as np
 import pandas as pd
 
-import scripts.query_pymol as query_pymol
+import scripts.query_biopython as query_bp
 import scripts.utils as utils
 
 
@@ -82,26 +82,8 @@ def find_target_indices_from_matrix(matrix, cdr_indices):
 
 def print_targets_to_file(bound_pairs, filename):
     """Prints bound pairs to csv file."""
-    rows = [["cdr_residues",
-             "cdr_chain",
-             "cdr_pdb_indices",
-             "target_residues",
-             "target_length",
-             "target_chain",
-             "target_pdb_indices"]]
-
-    for target in bound_pairs:
-        rows.append([target['cdr_residues'],
-                     target['cdr_chain'],
-                     target['cdr_pdb_indices'],
-                     target['target_residues'],
-                     target['target_length'],
-                     target['target_chain'],
-                     target['target_pdb_indices']])
-
-    with open(filename, 'w+') as f:
-        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-        writer.writerows(rows)
+    df = pd.DataFrame(bound_pairs)
+    df.to_csv(filename, header=True, index=False, quoting=csv.QUOTE_ALL)
 
 
 def find_bound_pairs(pdb_id, fragment_length):
@@ -115,9 +97,9 @@ def find_bound_pairs(pdb_id, fragment_length):
     same for fragment of target residues
     """
     matrix = read_matrix_from_file(pdb_id)
-    bound_pairs, bound_pairs_fragmented = query_pymol.find_all_binding_pairs(matrix,
-                                                                             pdb_id,
-                                                                             fragment_length)
+    bound_pairs, bound_pairs_fragmented = query_bp.find_all_binding_pairs(matrix,
+                                                                          pdb_id,
+                                                                          fragment_length)
 
     return bound_pairs, bound_pairs_fragmented
 

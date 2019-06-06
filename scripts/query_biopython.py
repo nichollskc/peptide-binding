@@ -195,7 +195,7 @@ def find_targets_from_pdb(cdr_indices, ids_df, neighbor_search, all_residues):
                                  for res in fragment]
             fragment_bp_ids_str = get_full_bp_id_string(fragment)
 
-            bound_pair_fragment = {'cdr_residues': "".join(cdr_resnames_from_bp),
+            bound_pair_fragment = {'cdr_resnames': "".join(cdr_resnames_from_bp),
                                    'cdr_bp_id_str': cdr_bp_ids_str,
                                    'target_length': len(fragment),
                                    'target_resnames': "".join(fragment_resnames),
@@ -293,22 +293,23 @@ def find_contiguous_fragments(residues_z, max_gap=1, min_fragment_length=3):
         #   because they are on separate chains
         # Recall that the list residues_z contains pairs (index, residue_obj)
         current_index = residues_z[0][0]
-        current_chain = residues_z[0][1].get_parent().get_id()
+        current_residue = residues_z[0][1]
+        current_chain_obj = current_residue.get_parent()
 
         working_fragment = [residues_z[0][1]]
         for target in residues_z[1:]:
             new_index = target[0]
             new_residue = target[1]
-            new_chain = new_residue.get_parent().get_id()
+            new_chain_obj = new_residue.get_parent()
 
-            if new_chain == current_chain:
+            if new_chain_obj == current_chain_obj:
                 assert new_index > current_index, \
                     "List of indices must be sorted {} {}".format(new_index, current_index)
 
             gap = (new_index - current_index) - 1
             # If the gap is bigger than allowed or the chain has changed
             #   then we must start a new fragment
-            if new_chain != current_chain or gap > max_gap:
+            if new_chain_obj != current_chain_obj or gap > max_gap:
                 # Add the completed fragment to the list of fragments if it is long enough
                 if len(working_fragment) >= min_fragment_length:
                     fragments.append(working_fragment)
@@ -317,13 +318,17 @@ def find_contiguous_fragments(residues_z, max_gap=1, min_fragment_length=3):
             else:
                 if gap:
                     # Select the residues strictly between these two indices
-                    missing_residues = new_residue.get_parent().child_list[current_index + 1:new_index]
+                    min_index = current_chain_obj.child_list.index(current_residue) + 1
+                    max_index = current_chain_obj.child_list.index(new_residue)
+                    missing_residues = [current_chain_obj.child_list[ind]
+                                        for ind in range(min_index, max_index)]
                     working_fragment.extend(missing_residues)
 
                 working_fragment.append(new_residue)
 
-            current_chain = new_chain
+            current_chain_obj = new_chain_obj
             current_index = new_index
+            current_residue = new_residue
 
         if len(working_fragment) >= min_fragment_length:
             fragments.append(working_fragment)
