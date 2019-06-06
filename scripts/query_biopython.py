@@ -33,6 +33,18 @@ def select_residues_from_bp_id_string(bp_id_string, structure):
     return residues
 
 
+def sort_bp_residues(bp_residues, all_residues):
+    """Zips together the residues list with their indices in the full list of
+    residues and returns this list, sorted by the indices."""
+    bp_residue_indices = [all_residues.index(res) for res in bp_residues]
+
+    zipped = zip(bp_residue_indices, bp_residues)
+    sorted_residues_zipped = sorted(zipped, key=lambda pair: pair[0])
+    sorted_residues = [pair[1] for pair in sorted_residues_zipped]
+
+    return sorted_residues, sorted_residues_zipped
+
+
 def find_all_binding_pairs(matrix, pdb_id, fragment_length):
     """
     Finds all CDR-like regions of given length in the matrix, and also finds
@@ -146,14 +158,16 @@ def find_targets_from_pdb(cdr_indices, ids_df, bp_structure, neighbor_search, al
                                                    neighbor_search)
 
     if nearby_residues:
+        sorted_nearby_residues, sorted_nearby_residues_z = sort_bp_residues(nearby_residues,
+                                                                            all_residues)
         nearby_resnames = [Bio.PDB.protein_letters_3to1[res.get_resname()]
-                           for res in nearby_residues]
-        target_bp_ids_str = get_full_bp_id_string(nearby_residues)
+                           for res in sorted_nearby_residues]
+        target_bp_ids_str = get_full_bp_id_string(sorted_nearby_residues)
 
         bound_pairs = [{'cdr_resnames': "".join(cdr_resnames_from_bp),
+                        'cdr_bp_id_str': cdr_bp_ids_str,
                         'target_length': len(nearby_residues),
                         'target_resnames': "".join(nearby_resnames),
-                        'cdr_bp_id_str': cdr_bp_ids_str,
                         'target_bp_id_str': target_bp_ids_str}]
 
         # targets_fragmented = find_contiguous_fragments(nearby_residues,
