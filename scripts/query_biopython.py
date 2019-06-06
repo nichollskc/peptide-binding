@@ -131,7 +131,6 @@ def find_all_binding_pairs(matrix, pdb_id, fragment_length):
             cdr_indices = list(range(start_index, end_index + 1))
             bound_pair, bound_pairs_fragmented = find_targets_from_pdb(cdr_indices,
                                                                        ids_df,
-                                                                       structure,
                                                                        neighbor_search,
                                                                        all_residues)
 
@@ -141,7 +140,7 @@ def find_all_binding_pairs(matrix, pdb_id, fragment_length):
     return all_bound_pairs, all_bound_pairs_fragmented
 
 
-def find_targets_from_pdb(cdr_indices, ids_df, bp_structure, neighbor_search, all_residues):
+def find_targets_from_pdb(cdr_indices, ids_df, neighbor_search, all_residues):
     """
     Finds target fragments of a given CDR.
 
@@ -189,19 +188,19 @@ def find_targets_from_pdb(cdr_indices, ids_df, bp_structure, neighbor_search, al
                         'target_resnames': "".join(nearby_resnames),
                         'target_bp_id_str': target_bp_ids_str}]
 
-        # targets_fragmented = find_contiguous_fragments(nearby_residues,
-        #                                                bp_structure)
-        #
-        # for fragment in targets_fragmented:
-        #
-        #     bound_pair_fragment = {'cdr_residues': "".join(cdr_resnames_from_bp),
-        #                            'cdr_chain': cdr_chain,
-        #                            'cdr_pdb_indices': ",".join(map(str, cdr_resnames_from_bp)),
-        #                            'target_residues': "".join([base[1] for base in fragment]),
-        #                            'target_length': len(fragment),
-        #                            'target_chain': fragment[0][2],
-        #                            'target_pdb_indices': ",".join([base[0] for base in fragment])}
-        #     bound_pairs_fragmented.append(bound_pair_fragment)
+        targets_fragmented = find_contiguous_fragments(sorted_nearby_residues_z)
+
+        for fragment in targets_fragmented:
+            fragment_resnames = [Bio.PDB.protein_letters_3to1[res.get_resname()]
+                                 for res in fragment]
+            fragment_bp_ids_str = get_full_bp_id_string(fragment)
+
+            bound_pair_fragment = {'cdr_residues': "".join(cdr_resnames_from_bp),
+                                   'cdr_bp_id_str': cdr_bp_ids_str,
+                                   'target_length': len(fragment),
+                                   'target_resnames': "".join(fragment_resnames),
+                                   'target_bp_id_str': fragment_bp_ids_str}
+            bound_pairs_fragmented.append(bound_pair_fragment)
 
     return bound_pairs, bound_pairs_fragmented
 
@@ -246,15 +245,11 @@ def find_contacting_residues_pdb(cdr_residues, neighbor_search):
     cleaned_residues = [res
                         for res in nearby_residues
                         if res not in extended_cdr]
-    print("cdr", cdr_residues)
-    print("nearby", nearby_residues)
-    print("cleaned", cleaned_residues)
-    print("======")
 
     return cleaned_residues
 
 
-def find_contiguous_fragments(residues, pdb_id, max_gap=1, min_fragment_length=3):
+def find_contiguous_fragments(residues_z, max_gap=1, min_fragment_length=3):
     """
     Splits a list of residues into contiguous fragments. The list should
     contain the one-letter codes for amino acids, PDB indices of residues
@@ -288,25 +283,23 @@ def find_contiguous_fragments(residues, pdb_id, max_gap=1, min_fragment_length=3
     # We will assume that there are no missing residues in the PDB file, so that
     #   we can rely on the indices of the residues in the list to determine
     #   whether two residues are consecutive.
-    #   Print out a statement if this assumption appears to be false
 
     fragments = []
 
-    assert cmd.get_object_list(selection='(all)') == [pdb_id], \
-        "No PDB file loaded prior to calling find_contiguous_fragments"
-
-    if residues:
+    if residues_z:
         # Build up each fragment element by element, starting a new fragment
         #   when the next element isn't compatible with the current fragment
         #   either because there is too big a gap between residue numbers or
         #   because they are on separate chains
-        current_index, _, current_chain = residues[0]
-        current_index = int(current_index)
+        # Recall that the list residues_z contains pairs (index, residue_obj)
+        current_index = residues_z[0][0]
+        current_chain = residues_z[0][1].get_parent().get_id()
 
-        working_fragment = [residues[0]]
-        for target in residues[1:]:
-            new_index, _, new_chain = target
-            new_index = int(new_index)
+        working_fragment = [residues_z[0][1]]
+        for target in residues_z[1:]:
+            new_index = target[0]
+            new_residue = target[1]
+            new_chain = new_residue.get_parent().get_id()
 
             if new_chain == current_chain:
                 assert new_index > current_index, \
@@ -320,19 +313,14 @@ def find_contiguous_fragments(residues, pdb_id, max_gap=1, min_fragment_length=3
                 if len(working_fragment) >= min_fragment_length:
                     fragments.append(working_fragment)
                 # Start a new fragment
-                working_fragment = [target]
+                working_fragment = [new_residue]
             else:
                 if gap:
-                    stored.list = []
-                    missing_residues_select_str = "(chain {} and resi {}-{} & n. ca)"\
-                                                  .format(new_chain,
-                                                          current_index + 1,
-                                                          new_index - 1)
-                    cmd.iterate(missing_residues_select_str,
-                                "stored.list.append((resi, oneletter, chain))")
-                    working_fragment.extend(stored.list)
+                    # Select the residues strictly between these two indices
+                    missing_residues = new_residue.get_parent().child_list[current_index + 1:new_index]
+                    working_fragment.extend(missing_residues)
 
-                working_fragment.append(target)
+                working_fragment.append(new_residue)
 
             current_chain = new_chain
             current_index = new_index
