@@ -7,7 +7,7 @@ find . -iname "*.py" | xargs pylint --rcfile=.pylintrc
 PYLINT_RESULT=$?
 
 # Test prospective commit
-scripts/run_tests.sh
+$(coverage run -m unittest discover)
 TEST_RESULT=$?
 
 coverage report --fail-under=80
