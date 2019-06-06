@@ -45,6 +45,27 @@ def sort_bp_residues(bp_residues, all_residues):
     return sorted_residues, sorted_residues_zipped
 
 
+def get_bp_nbrs(residues, distance=1):
+    """Finds all residues that are within `distance` along the respective chains
+    of the given residues.
+    For example, given a list of one residue structure[0]["A"].child_list[i]
+    and using distance=1 it will return the list
+        structure[0]["A"].child_list[i-1]
+        structure[0]["A"].child_list[i]
+        structure[0]["A"].child_list[i+1]"""
+    res_nbrs = set()
+    for residue in residues:
+        chain_list = residue.get_parent().child_list
+        index = chain_list.index(residue)
+        min_index = max(0, index - distance)
+        max_index = min(len(chain_list), index + distance + 1)
+
+        nbrs = chain_list[min_index:max_index]
+        res_nbrs.update(nbrs)
+
+    return list(res_nbrs)
+
+
 def find_all_binding_pairs(matrix, pdb_id, fragment_length):
     """
     Finds all CDR-like regions of given length in the matrix, and also finds
@@ -113,8 +134,6 @@ def find_all_binding_pairs(matrix, pdb_id, fragment_length):
                                                                        structure,
                                                                        neighbor_search,
                                                                        all_residues)
-
-            print(bound_pair)
 
             all_bound_pairs.extend(bound_pair)
             all_bound_pairs_fragmented.extend(bound_pairs_fragmented)
@@ -214,15 +233,25 @@ def find_contacting_residues_pdb(cdr_residues, neighbor_search):
                  for atom in Bio.PDB.Selection.unfold_entities(cdr_residues, 'A')
                  if accept_atom(atom)]
 
-    # Find ordered atoms which are neighbours of these atoms
+    # Find ordered atoms which are neighbours of these atoms (within 3.5 Angstroms)
+    radius = 3.5
     nearby_atoms = {atom for cdr_atom in cdr_atoms
-                    for atom in neighbor_search.search(cdr_atom.coord, 10, 'A')
+                    for atom in neighbor_search.search(cdr_atom.coord, radius, 'A')
                     if accept_atom(atom)}
 
     # Find residues these atoms belong to
     nearby_residues = {atom.get_parent() for atom in nearby_atoms}
 
-    return nearby_residues
+    extended_cdr = get_bp_nbrs(cdr_residues)
+    cleaned_residues = [res
+                        for res in nearby_residues
+                        if res not in extended_cdr]
+    print("cdr", cdr_residues)
+    print("nearby", nearby_residues)
+    print("cleaned", cleaned_residues)
+    print("======")
+
+    return cleaned_residues
 
 
 def find_contiguous_fragments(residues, pdb_id, max_gap=1, min_fragment_length=3):
