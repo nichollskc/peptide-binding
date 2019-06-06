@@ -22,5 +22,7 @@ install:
 
 script:
   - source activate rationaldesign
-  # run the workflow
-  - current_dir=$(pwd) snakemake bound_pairs/fragmented/unique_bound_pairs.csv
+  # Test the snakemake workflow with qsub to check jobs are grouped properly
+  - current_dir=$(pwd) snakemake processed/bound_pairs/fragmented/unique_bound_pairs.csv --cluster "qsub -q s1 -V" --jobs 2 --dryrun
+
+  - current_dir=$(pwd) snakemake processed/bound_pairs/fragmented/unique_bound_pairs.csv
