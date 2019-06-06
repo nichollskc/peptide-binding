@@ -70,7 +70,7 @@ def find_target_indices_from_matrix(matrix, cdr_indices):
     Returns:
         array: array of indices that interact with any of the indices of CDR.
     """
-    target_indices_np = ((matrix.iloc[cdr_indices, :] < 0).sum(axis=0) > 0).nonzero()
+    target_indices_np = ((matrix.iloc[cdr_indices, :] < 0).sum(axis=0) > 0).to_numpy().nonzero()
     target_indices = list(target_indices_np[0])
 
     for index in cdr_indices:

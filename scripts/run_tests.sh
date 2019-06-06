@@ -1,2 +1,2 @@
 #!/bin/bash
-coverage run -m unittest discover 
+coverage run -m unittest discover -k SHORT

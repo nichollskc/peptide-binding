@@ -16,19 +16,19 @@ class LongTest(unittest.TestCase):
 
 class ShortTest(unittest.TestCase):
 
-    def test_read_matrix(self):
+    def test_SHORT_read_matrix(self):
         matrix = con_dat.read_matrix_from_file("3cuq")
         self.assertTrue(isinstance(matrix, np.ndarray), "Should return numpy array")
 
-    def test_read_matrix_df(self):
+    def test_SHORT_read_matrix_df(self):
         matrix = con_dat.read_matrix_from_file_df("3cuq")
         self.assertTrue(isinstance(matrix, pd.DataFrame), "Should return data frame")
 
-    def test_interactions_matrix(self):
+    def test_SHORT_interactions_matrix(self):
         matrix = con_dat.read_matrix_from_file_df("3cuq")
         con_dat.find_target_indices_from_matrix(matrix, [0, 1, 2, 3])
 
-    def test_remove_duplicates(self):
+    def test_SHORT_remove_duplicates(self):
         df = pd.DataFrame(data=[[1, 10, 100],
                                 [2, 20, 100],
                                 [3, 20, 100],

@@ -275,9 +275,7 @@ def find_contacting_residues_pdb(cdr_residues, neighbor_search):
 
 def find_contiguous_fragments(residues_z, max_gap=1, min_fragment_length=3):
     """
-    Splits a list of residues into contiguous fragments. The list should
-    contain the one-letter codes for amino acids, PDB indices of residues
-    and the chain IDs for each residue.
+    Splits a list of residues into contiguous fragments.
 
     Args:
         residues (array): Each entry should be an array of the form
