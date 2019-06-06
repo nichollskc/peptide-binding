@@ -1,6 +1,6 @@
 import scripts.utils as utils
 
-PDB_IDS = ['3cuq', '1mhp']
+PDB_IDS = ['3cuq', '1mhp', '2h5c']
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['cdrs', 'targets', 'combined', 'labels']
 DATA_GROUPS = ['training', 'test', 'validation']
