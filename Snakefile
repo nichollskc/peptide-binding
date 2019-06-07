@@ -1,7 +1,27 @@
+import glob
+import random
+import re
 import string
 import scripts.utils as utils
 
-PDB_IDS = ['3cuq', '1mhp', '2h5c', '5waq']
+def get_pdb_ids_file(filename):
+    with open(filename, 'r') as f:
+        files = f.readlines()
+    ids = [f.split("_")[0] for f in files]
+    return ids
+
+def get_all_pdb_ids():
+    files = glob.glob("icMatrix/*_icMat.bmat")
+    ids = [f.split("/")[1].split("_")[0] for f in files]
+    return ids
+
+def get_random_pdb_ids(k=1000):
+    ids = get_all_pdb_ids()
+
+    random.seed(42)
+    num_to_sample = min(k, len(ids))
+    rand_ids = random.sample(ids, num_to_sample)
+    return rand_ids
 
 def group_ids(ids):
     groups = []
@@ -16,6 +36,8 @@ def group_ids(ids):
             group_names.append(char)
 
     return groups, group_names
+
+PDB_IDS = get_random_pdb_ids()
 
 GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
 
