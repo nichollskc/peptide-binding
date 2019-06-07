@@ -111,7 +111,6 @@ def read_bound_pairs(filename):
         return bound_pairs_df
     except pd.errors.EmptyDataError:
         print("File '{}' didn't have any columns. Ignoring file.".format(filename))
-        pass
 
 
 def combine_bound_pairs(filename_list):
@@ -119,7 +118,6 @@ def combine_bound_pairs(filename_list):
     combine them into a single dataframe"""
     data_frames = [read_bound_pairs(filename) for filename in filename_list]
     combined_data_frame = pd.concat(data_frames)
-
     return combined_data_frame
 
 

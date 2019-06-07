@@ -37,7 +37,7 @@ def group_ids(ids):
 
     return groups, group_names
 
-PDB_IDS = get_random_pdb_ids()
+PDB_IDS = get_all_pdb_ids()
 
 GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
 
