@@ -106,9 +106,12 @@ def find_bound_pairs(pdb_id, fragment_length):
 
 def read_bound_pairs(filename):
     """Read a csv file containing bound pairs and return the csv"""
-    bound_pairs_df = pd.read_csv(filename, header=0, index_col=None)
-
-    return bound_pairs_df
+    try:
+        bound_pairs_df = pd.read_csv(filename, header=0, index_col=None)
+        return bound_pairs_df
+    except pd.errors.EmptyDataError:
+        print("File '{}' didn't have any columns. Ignoring file.".format(filename))
+        pass
 
 
 def combine_bound_pairs(filename_list):
