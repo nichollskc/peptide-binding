@@ -108,7 +108,7 @@ def load_structure_for_search(pdb_id):
     return all_residues, neighbor_search
 
 
-def construct_bound_pair_dict(cdr_residues, target_residues):
+def construct_bound_pair_dict(pdb_id, cdr_residues, target_residues):
     """Constructs a dictionary of the bound pair consisting of a CDR fragment
     and its target. Many can be saved together in a csv file e.g. using
     construct_database.print_targets_to_file."""
@@ -120,7 +120,8 @@ def construct_bound_pair_dict(cdr_residues, target_residues):
                        for res in target_residues]
     target_bp_ids_str = get_compact_bp_id_string(target_residues)
 
-    bound_pairs = {'cdr_resnames': "".join(cdr_resnames),
+    bound_pairs = {'pdb_id': pdb_id,
+                   'cdr_resnames': "".join(cdr_resnames),
                    'cdr_bp_id_str': cdr_bp_ids_str,
                    'target_length': len(target_residues),
                    'target_resnames': "".join(target_resnames),
@@ -202,7 +203,8 @@ def find_all_binding_pairs(matrix, pdb_id, fragment_length):
             # Get the indices belonging to this fragment - note range() excludes
             #   second number given
             cdr_indices = list(range(start_index, end_index + 1))
-            bound_pair, bound_pairs_fragmented = find_targets_from_pdb(cdr_indices,
+            bound_pair, bound_pairs_fragmented = find_targets_from_pdb(pdb_id,
+                                                                       cdr_indices,
                                                                        ids_df,
                                                                        neighbor_search,
                                                                        all_residues)
@@ -213,11 +215,12 @@ def find_all_binding_pairs(matrix, pdb_id, fragment_length):
     return all_bound_pairs, all_bound_pairs_fragmented
 
 
-def find_targets_from_pdb(cdr_indices, ids_df, neighbor_search, all_residues):
+def find_targets_from_pdb(pdb_id, cdr_indices, ids_df, neighbor_search, all_residues):
     """
     Finds target fragments of a given CDR.
 
     Args:
+        pdb_id (string): ID of PDB file e.g. '2zxx'
         cdr_indices (array): array of integer indices to the
             interaction matrix
         ids_df (pd.DataFrame): data frame indexed by the indices
@@ -252,13 +255,15 @@ def find_targets_from_pdb(cdr_indices, ids_df, neighbor_search, all_residues):
     if nearby_residues:
         sorted_nearby_residues, sorted_nearby_residues_z = sort_bp_residues(nearby_residues,
                                                                             all_residues)
-        bound_pairs.append(construct_bound_pair_dict(cdr_residues_from_bp,
+        bound_pairs.append(construct_bound_pair_dict(pdb_id,
+                                                     cdr_residues_from_bp,
                                                      sorted_nearby_residues))
 
         targets_fragmented = find_contiguous_fragments(sorted_nearby_residues_z)
 
         for fragment in targets_fragmented:
-            bound_pairs_fragmented.append(construct_bound_pair_dict(cdr_residues_from_bp,
+            bound_pairs_fragmented.append(construct_bound_pair_dict(pdb_id,
+                                                                    cdr_residues_from_bp,
                                                                     fragment))
 
     return bound_pairs, bound_pairs_fragmented
