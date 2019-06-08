@@ -61,11 +61,16 @@ rule find_all_bound_pairs:
     params:
         pdb_id='{pdb_id}',
         cdr_fragment_length=4,
+    log:
+        'logs/find_all_bound_pairs/{pdb_id}.log'
     output:
         complete='processed/bound_pairs/complete/individual/{pdb_id}.csv',
         fragmented='processed/bound_pairs/fragmented/individual/{pdb_id}.csv',
-    script:
-        'scripts/find_all_bound_pairs.py'
+    shell:
+        'python3 scripts/find_all_bound_pairs.py --pdb_id {params.pdb_id} ' \
+        '--cdr_fragment_length {params.cdr_fragment_length} ' \
+        '--fragmented_outfile {output.fragmented} ' \
+        '--complete_outfile {output.complete} > {log} 2>&1'
 
 for id_group, group_name in zip(GROUPED_IDS, GROUP_NAMES):
     # This rule just forces the find_all_bound_pairs rules to run in batches
@@ -84,10 +89,12 @@ rule find_unique_bound_pairs:
         bound_pairs=expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv',
                pdb_id=PDB_IDS),
         group_names=expand('processed/checks/{group_name}', group_name=GROUP_NAMES)
+    log:
+        'logs/find_unique_bound_pairs/log.log'
     output:
         'processed/bound_pairs/fragmented/unique_bound_pairs.csv',
-    script:
-        'scripts/find_unique_bound_pairs.py'
+    shell:
+        'python3 scripts/find_unique_bound_pairs.py {output} {input.bound_pairs} > {log} 2>&1'
 
 rule distance_matrix:
     input:
