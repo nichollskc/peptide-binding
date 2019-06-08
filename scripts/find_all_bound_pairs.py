@@ -6,8 +6,8 @@ import sys
 
 sys.path.append(os.environ.get('current_dir'))
 
-import scripts.construct_database as con_dat
-import scripts.query_biopython as query_bp
+import scripts.helper.construct_database as con_dat
+import scripts.helper.query_biopython as query_bp
 
 # Read in parameters from snakemake
 pdb_id = snakemake.params.pdb_id

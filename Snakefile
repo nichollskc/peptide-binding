@@ -2,7 +2,7 @@ import glob
 import random
 import re
 import string
-import scripts.utils as utils
+import scripts.helper.utils as utils
 
 def get_pdb_ids_file(filename):
     with open(filename, 'r') as f:

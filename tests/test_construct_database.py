@@ -7,7 +7,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-import scripts.construct_database as con_dat
+import scripts.helper.construct_database as con_dat
 
 class Test(unittest.TestCase):
 

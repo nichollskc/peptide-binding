@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import Bio.PDB
 
-import scripts.utils as utils
+import scripts.helper.utils as utils
 
 
 def atom_is_ordered(atom):

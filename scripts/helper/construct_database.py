@@ -5,8 +5,8 @@ import csv
 import numpy as np
 import pandas as pd
 
-import scripts.query_biopython as query_bp
-import scripts.utils as utils
+import scripts.helper.query_biopython as query_bp
+import scripts.helper.utils as utils
 
 
 def read_matrix_from_file(pdb_id):

@@ -2,7 +2,7 @@
 import pandas as pd
 from pymol import cmd, stored       # pylint: disable-msg=no-name-in-module
 
-import scripts.utils as utils
+import scripts.helper.utils as utils
 
 
 def find_all_binding_pairs(matrix, pdb_id, fragment_length):

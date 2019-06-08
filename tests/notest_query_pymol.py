@@ -6,8 +6,8 @@ import unittest
 
 from pymol import cmd
 
-import scripts.query_pymol as query_pymol
-import scripts.utils as utils
+import scripts.helper.query_pymol as query_pymol
+import scripts.helper.utils as utils
 
 
 class Test(unittest.TestCase):

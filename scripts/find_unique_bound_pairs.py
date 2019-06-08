@@ -7,7 +7,7 @@ import sys
 
 sys.path.append(os.environ.get('current_dir'))
 
-import scripts.construct_database as con_dat
+import scripts.helper.construct_database as con_dat
 
 filename_list = list(snakemake.input.bound_pairs)
 
