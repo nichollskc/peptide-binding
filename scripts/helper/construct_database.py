@@ -1,6 +1,7 @@
 """Constructs database of interacting fragments."""
 
 import csv
+import logging
 
 import numpy as np
 import pandas as pd
@@ -110,7 +111,7 @@ def read_bound_pairs(filename):
         bound_pairs_df = pd.read_csv(filename, header=0, index_col=None)
         return bound_pairs_df
     except pd.errors.EmptyDataError:
-        print("File '{}' didn't have any columns. Ignoring file.".format(filename))
+        logging.warning(f"File '{filename}' didn't have any columns. Ignoring file.")
 
 
 def combine_bound_pairs(filename_list):

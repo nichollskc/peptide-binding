@@ -70,7 +70,7 @@ rule find_all_bound_pairs:
         'python3 scripts/find_all_bound_pairs.py --pdb_id {params.pdb_id} ' \
         '--cdr_fragment_length {params.cdr_fragment_length} ' \
         '--fragmented_outfile {output.fragmented} ' \
-        '--complete_outfile {output.complete} > {log} 2>&1'
+        '--complete_outfile {output.complete} --verbosity 4 2>&1 | tee {log}'
 
 for id_group, group_name in zip(GROUPED_IDS, GROUP_NAMES):
     # This rule just forces the find_all_bound_pairs rules to run in batches
@@ -94,7 +94,8 @@ rule find_unique_bound_pairs:
     output:
         'processed/bound_pairs/fragmented/unique_bound_pairs.csv',
     shell:
-        'python3 scripts/find_unique_bound_pairs.py {output} {input.bound_pairs} > {log} 2>&1'
+        'python3 scripts/find_unique_bound_pairs.py {output} {input.bound_pairs} '\
+        '--verbosity 4  2>&1 | tee {log}'
 
 rule distance_matrix:
     input:
