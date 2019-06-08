@@ -1,10 +1,7 @@
 import glob
-import os
 import random
 import re
 import string
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 import scripts.helper.utils as utils
 
