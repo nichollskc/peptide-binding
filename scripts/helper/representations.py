@@ -5,11 +5,11 @@ https://github.com/eliberis/parapred/blob/d13600a3d5697ebd5796576e1d6166aa1a5199
 import numpy as np
 import tensorflow as tf
 
+################################################################################
+#   Utility functions                                                          #
+################################################################################
 
 residues_order = "CSTPAGNDEQHRKMILVFYWX"  # X for unknown
-
-NUM_FEATURES = len(residues_order) + 7  # one-hot + extra features
-
 
 def resnames_to_ints(res_str):
     """Converts a string of residues e.g. 'AFFG' to an array of integers, using
@@ -45,8 +45,11 @@ def residue_features():
              [0.00, 0.00, 0.00,  0.00,  0.00, 0.00, 0.00]]
     return np.array(prop1)
 
+################################################################################
+#   Functions to generate flat arrays of features from raw information         #
+################################################################################
 
-def generate_onehot(resnames):
+def raw_onehot(resnames):
     """Generates the representation of a string of residues, where each is
     represented by an array. Each array contains the one-hot representation of
     the residue type.
@@ -57,26 +60,26 @@ def generate_onehot(resnames):
     return onehot
 
 
-def generate_bagofwords(resnames):
+def raw_bagofwords(resnames):
     """Generates the bag of words representation of a string of residues. Each value
     represents the number of occurrences of that amino acid in the string."""
-    onehot = generate_onehot(resnames)
+    onehot = raw_onehot(resnames)
 
     return onehot.sum(axis=0)
 
 
-def generate_crossed_bagofwords(cdr_resnames, target_resnames):
+def raw_crossed_bagofwords(cdr_resnames, target_resnames):
     """Return the flattened matrix where each entry (i, j) indicates the number of
     times that there is a pair (C_i, T_j) i.e. that amino acid i appears in the
     CDR and amino acid j appears in the target. Length of the array will be
     21x21=441."""
-    cdr_bagofwords = generate_bagofwords(cdr_resnames)
-    target_bagofwords = generate_bagofwords(target_resnames)
+    cdr_bagofwords = raw_bagofwords(cdr_resnames)
+    target_bagofwords = raw_bagofwords(target_resnames)
 
     return np.outer(cdr_bagofwords, target_bagofwords).flatten()
 
 
-def generate_meiler(resnames):
+def raw_meiler(resnames):
     """Generates the representation of a string of residues, where each is
     represented by an array. Each array contains the 7 Meiler criteria for that residue.
 
@@ -87,29 +90,90 @@ def generate_meiler(resnames):
     return meiler
 
 
-def generate_onehot_meiler(resnames):
+def raw_onehot_meiler(resnames):
     """Generates the representation of a string of residues, where each is
     represented by an array. The first 21 give the one-hot representation of
     the residue type and the final 7 give the Meiler criteria for that residue.
 
     Returns an array where each row is one amino acid, and each column is a feature."""
-    meiler = generate_meiler(resnames)
-    onehot = generate_onehot(resnames)
+    meiler = raw_meiler(resnames)
+    onehot = raw_onehot(resnames)
 
     return np.concatenate((onehot, meiler), axis=1)
 
 
-def generate_padded_onehot_meiler(resnames, max_length):
+def raw_padded_onehot_meiler(resnames, max_length):
     """Generate the representation as in generate_meiler_representation, but
     pad the sequence with zeros to max_length.
 
     Return the padded sequence and a mask indicating which are true entries and
     which are just padding."""
-    cdr_mat = generate_onehot_meiler(resnames)
-    cdr_mat_pad = np.zeros((max_length, NUM_FEATURES))
+    num_features = len(residues_order) + 7  # one-hot + extra features
+
+    cdr_mat = raw_onehot_meiler(resnames)
+    cdr_mat_pad = np.zeros((max_length, num_features))
     cdr_mat_pad[:cdr_mat.shape[0], :] = cdr_mat
 
     cdr_mask = np.zeros((max_length, 1), dtype=int)
     cdr_mask[:len(resnames), 0] = 1
 
     return cdr_mat_pad, cdr_mask
+
+
+################################################################################
+#   Functions to generate flat arrays of features for each bound pair          #
+################################################################################
+
+
+def generate_bagofwords(row):
+    """Generates the bag of words representation of a string of residues. Each value
+    represents the number of occurrences of that amino acid in the string."""
+    return np.concatenate((raw_bagofwords(row['cdr_resnames']),
+                           raw_bagofwords(row['target_resnames'])),
+                          axis=0)
+
+
+def generate_crossed_bagofwords(row):
+    """Return the flattened matrix where each entry (i, j) indicates the number of
+    times that there is a pair (C_i, T_j) i.e. that amino acid i appears in the
+    CDR and amino acid j appears in the target. Length of the array will be
+    21x21=441."""
+    return raw_crossed_bagofwords(row['cdr_resnames'], row['target_resnames'])
+
+
+def generate_padded_onehot_meiler(row, cdr_max_length, target_max_length):
+    """Generate the representation as in generate_meiler_representation, but
+    pad the sequence with zeros to max_length.
+
+    Return the padded sequence and a mask indicating which are true entries and
+    which are just padding."""
+    cdr_padded, cdr_mask = raw_padded_onehot_meiler(row['cdr_resnames'],
+                                                    cdr_max_length)
+    target_padded, target_mask = raw_padded_onehot_meiler(row['target_resnames'],
+                                                          target_max_length)
+
+    combined_padded = np.concatenate((cdr_padded, target_padded), axis=0)
+    unused_combined_mask = np.concatenate((cdr_mask, target_mask), axis=0)
+
+    return combined_padded.flatten()
+
+
+################################################################################
+#   Functions to generate representations for all rows of a data frame         #
+################################################################################
+
+
+def generate_representation_all(bound_pairs_df, generate_func):
+    """Generates the representations for all the rows of the given data frame,
+    using the function generate_func to generate the representations for each
+    row.
+
+    Can give arguments for generate_func by using a lambda function e.g.
+    generate_representation_all(df,
+                                lambda r: generate_padded_onehot_meiler(r, 4, 12))"""
+    representations = []
+    for _, row in bound_pairs_df.iterrows():
+        representation = generate_func(row)
+        representations.append(representation)
+
+    return np.vstack(representations)
