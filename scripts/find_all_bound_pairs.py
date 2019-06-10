@@ -50,7 +50,7 @@ logging.info(f"Finding fragments of length {fragment_length} in {pdb_id}")
 # Read in the matrix and find the cdrs and binding pairs within this file
 matrix = con_dat.read_matrix_from_file(pdb_id)
 
-logging.debug("Read in matrix")
+logging.info("Read in matrix")
 
 bound_pairs, bound_pairs_fragmented = query_bp.find_all_binding_pairs(matrix,
                                                                       pdb_id,
@@ -69,4 +69,4 @@ if args.fragmented_outfile:
                                   args.fragmented_outfile)
     logging.info(f"Written fragmented bound pairs to {args.fragmented_outfile}")
 
-logging.debug("Done")
+logging.info("Done")

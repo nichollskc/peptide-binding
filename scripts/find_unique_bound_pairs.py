@@ -45,4 +45,4 @@ logging.info(f"Number of bound pairs after removing duplicates: {no_duplicates.s
 logging.info(f"Saving to file {args.output_file}")
 no_duplicates.to_csv(args.output_file, header=True, index=None)
 
-logging.debug("Done")
+logging.info("Done")
