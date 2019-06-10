@@ -2,15 +2,25 @@
 Some code reused from these files:
 https://github.com/eliberis/parapred/blob/d13600a3d5697ebd5796576e1d6166aa1a519933/parapred/data_provider.py
 https://github.com/eliberis/parapred/blob/d13600a3d5697ebd5796576e1d6166aa1a519933/parapred/structure_processor.py"""
+import numpy as np
+import tensorflow as tf
 
-aa_s = "CSTPAGNDEQHRKMILVFYWX" # X for unknown
 
-NUM_FEATURES = len(aa_s) + 7 # one-hot + extra features
+residues_order = "CSTPAGNDEQHRKMILVFYWX"  # X for unknown
 
-def one_to_number(res_str):
-    return [aa_s.index(r) for r in res_str]
+NUM_FEATURES = len(residues_order) + 7  # one-hot + extra features
 
-def aa_features():
+
+def resnames_to_ints(res_str):
+    """Converts a string of residues e.g. 'AFFG' to an array of integers, using
+    the global variable residues_order to give the order."""
+    return [residues_order.index(r) for r in res_str]
+
+
+# pylint: disable=bad-whitespace
+def residue_features():
+    """Returns a np.array with the Meiler criteria for each amino acid, with
+    the order as in residues_order."""
     # Meiler's features
     prop1 = [[1.77, 0.13, 2.43,  1.54,  6.35, 0.17, 0.41],
              [1.31, 0.06, 1.60, -0.04,  5.70, 0.20, 0.28],
@@ -36,47 +46,32 @@ def aa_features():
     return np.array(prop1)
 
 
-def seq_to_one_hot(res_seq_one):
-    from keras.utils.np_utils import to_categorical
-    ints = one_to_number(res_seq_one)
-    feats = aa_features()[ints]
-    onehot = to_categorical(ints, num_classes=len(aa_s))
-    return np.concatenate((onehot, feats), axis=1)
+def generate_meiler_representation(resnames):
+    """Generates the representation of a string of residues, where each is
+    represented by an array of length NUM_FEATURES. The first 21 give the
+    one-hot representation of the amino acid type and the final 7 give the
+    Meiler criteria for that residue.
 
-def process_chains(ag_search, ab_h_chain, ab_l_chain, sequences, pdb, max_cdr_len):
-    results = get_cdrs_and_contact_info(ag_search, ab_h_chain, ab_l_chain, sequences, pdb)
+    Returns an array where each row is one amino acid, and each column is a feature."""
+    ints = resnames_to_ints(resnames)
 
-    # Convert to matrices
-    # TODO: could simplify with keras.preprocessing.sequence.pad_sequences
-    cdr_mats = []
-    cont_mats = []
-    cdr_masks = []
+    meiler = residue_features()[ints]
+    onehot = tf.keras.utils.to_categorical(ints, num_classes=len(residues_order))
 
-    if results is None:
-        return None
+    return np.concatenate((onehot, meiler), axis=1)
 
-    cdrs, contact, counters = results
 
-    for cdr_name in ["H1", "H2", "H3", "L1", "L2", "L3"]:
-        # Convert Residue entities to amino acid sequences
-        cdr_chain = [r[0] for r in cdrs[cdr_name]]
+def generate_padded_meiler_representation(resnames, max_length):
+    """Generate the representation as in generate_meiler_representation, but
+    pad the sequence with zeros to max_length.
 
-        cdr_mat = seq_to_one_hot(cdr_chain)
-        cdr_mat_pad = np.zeros((max_cdr_len, NUM_FEATURES))
-        cdr_mat_pad[:cdr_mat.shape[0], :] = cdr_mat
-        cdr_mats.append(cdr_mat_pad)
+    Return the padded sequence and a mask indicating which are true entries and
+    which are just padding."""
+    cdr_mat = generate_meiler_representation(resnames)
+    cdr_mat_pad = np.zeros((max_length, NUM_FEATURES))
+    cdr_mat_pad[:cdr_mat.shape[0], :] = cdr_mat
 
-        cont_mat = np.array(contact[cdr_name], dtype=float)
-        cont_mat_pad = np.zeros((max_cdr_len, 1))
-        cont_mat_pad[:cont_mat.shape[0], 0] = cont_mat
-        cont_mats.append(cont_mat_pad)
+    cdr_mask = np.zeros((max_length, 1), dtype=int)
+    cdr_mask[:len(resnames), 0] = 1
 
-        cdr_mask = np.zeros((max_cdr_len, 1), dtype=int)
-        cdr_mask[:len(cdr_chain), 0] = 1
-        cdr_masks.append(cdr_mask)
-
-    cdrs = np.stack(cdr_mats)
-    lbls = np.stack(cont_mats)
-    masks = np.stack(cdr_masks)
-
-return cdrs, lbls, masks, counters
+    return cdr_mat_pad, cdr_mask
