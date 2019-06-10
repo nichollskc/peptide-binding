@@ -19,6 +19,8 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   - conda env create -f environment.yml
+  - git submodule update --init --recursive
+  - cd seq-align && make
 
 script:
   - source activate rationaldesign
