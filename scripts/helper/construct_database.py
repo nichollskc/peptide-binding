@@ -1,13 +1,25 @@
 """Constructs database of interacting fragments."""
 
 import csv
+import json
 import logging
+import random
 
 import numpy as np
 import pandas as pd
 
+import scripts.helper.distances as distances
 import scripts.helper.query_biopython as query_bp
 import scripts.helper.utils as utils
+
+
+def construct_cdr_id(row):
+    """Generates an ID for the given bound pair row e.g. '2xzz_0_3_AAFF'"""
+    indices = json.loads(row.cdr_bp_id_str)
+    start_ind = indices[0]
+    end_ind = indices[-1]
+    name = "_".join(map(str, [row.pdb_id, start_ind, end_ind, row.cdr_resnames]))
+    return name
 
 
 def read_matrix_from_file(pdb_id):
@@ -164,6 +176,99 @@ def find_unique_bound_pairs(filename_list):
     """
     all_bound_pairs = combine_bound_pairs(filename_list)
     bound_pairs_no_duplicates = remove_duplicate_rows(all_bound_pairs,
-                                                      ['cdr_residues', 'target_residues'])
+                                                      ['cdr_resnames', 'target_resnames'])
 
     return bound_pairs_no_duplicates
+
+
+def sample_index_pairs(data_frame, k):
+    """Samples k pairs of rows from the data frame. Returns as a zipped list of
+    the random pairs."""
+    random_indices = random.choices(list(range(len(data_frame.index))), k=2 * k)
+
+    random_donors = random_indices[:k]
+    random_acceptors = random_indices[k:]
+    return zip(random_acceptors, random_donors)
+
+
+def generate_negatives_alignment_threshold(bound_pairs_df, k=None):
+    """Given a data frame consisting of bound pairs (i.e. positive examples of
+    binding), return a copy with extra rows corresponding to negative examples.
+    Negatives are formed by exchanging the CDR of one row for the CDR of another,
+    and are marked by the `binding_observed` column being zero. The details of
+    the original CDR that has been replaced will be included in the column.
+
+    If (C,T) and (c,t) are two bound pairs, then we can generate a negative
+    (C,t) as long as distance(C,c) and distance(T,t) are both sufficiently large.
+    In this case distance is measured by sequence alignment.
+
+    This negative will have:
+    binding_observed = 0
+    cdr = C
+    target = t
+    original_cdr = c
+
+    Positives will have:
+    binding_observed = 1
+    cdr = C
+    target = T
+    original_cdr = NaN
+
+    For each of cdr, target and original_cdr there are fields for PDB id, biopython
+    ID string and resnames.
+    """
+    combined_df = bound_pairs_df.copy()
+    combined_df['cdr_pdb_id'] = combined_df['pdb_id']
+    combined_df['target_pdb_id'] = combined_df['pdb_id']
+    combined_df = combined_df.drop(columns='pdb_id')
+    combined_df['binding_observed'] = 1
+
+    if k is None:
+        k = len(bound_pairs_df.index)
+
+    logging.info(f"Generating {k} negative examples for dataset "
+                 f"containing {len(bound_pairs_df.index)} positive examples.")
+
+    random_index_pairs = sample_index_pairs(bound_pairs_df, k)
+
+    num_negatives_produced = 0
+    num_tried = 0
+    while num_negatives_produced < k:
+        try:
+            d_ind, a_ind = next(random_index_pairs)
+        except StopIteration:
+            # The list is empty, so let's repopulate it and then pop a sample
+            #   from the updated list
+            logging.info(f"Sampling {k} new pairs of rows.")
+            random_index_pairs = sample_index_pairs(bound_pairs_df, k)
+            d_ind, a_ind = next(random_index_pairs)
+
+        donor_row = combined_df.iloc[d_ind, :]
+        acceptor_row = combined_df.iloc[a_ind, :]
+        similarity = distances.calculate_similarity_score_alignment(donor_row, acceptor_row)
+
+        # We assume that exchanging the CDR of the acceptor row for the CDR of the donor row
+        #   will produce a negative sample when similarity is less than 0
+        if similarity < 0:
+            negative = acceptor_row.copy()
+            negative.loc['original_cdr_bp_id_str'] = acceptor_row['cdr_bp_id_str']
+            negative.loc['original_cdr_resnames'] = acceptor_row['cdr_resnames']
+            negative.loc['original_cdr_pdb_id'] = acceptor_row['cdr_pdb_id']
+
+            negative.loc['cdr_bp_id_str'] = donor_row['cdr_bp_id_str']
+            negative.loc['cdr_resnames'] = donor_row['cdr_resnames']
+            negative.loc['cdr_pdb_id'] = donor_row['cdr_pdb_id']
+
+            negative.loc['binding_observed'] = 0
+
+            combined_df = combined_df.append(negative)
+
+            num_negatives_produced += 1
+
+        num_tried += 1
+
+        if num_negatives_produced % 100 == 0:
+            logging.info(f"Produced {num_negatives_produced} negatives "
+                         f"from {num_tried} attempts. Latest was \n{negative}")
+
+    return combined_df

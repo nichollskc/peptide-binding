@@ -44,11 +44,12 @@ GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
 
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['cdrs', 'targets', 'combined', 'labels']
-DATA_GROUPS = ['training', 'test', 'validation']
+DATA_GROUPS = ['training', 'validation', 'test']
+DATA_GROUP_PROPORTIONS = [60, 20, 20]
 
 rule all:
     input:
-        expand('processed/dataset/{data_group}_{data_type}.npy',
+        expand('datasets/dataset_random/{data_group}_{data_type}.npy',
                data_group=DATA_GROUPS,
                data_type=DATA_TYPES)
 
@@ -71,7 +72,7 @@ rule find_all_bound_pairs:
         'python3 scripts/find_all_bound_pairs.py --pdb_id {params.pdb_id} ' \
         '--cdr_fragment_length {params.cdr_fragment_length} ' \
         '--fragmented_outfile {output.fragmented} ' \
-        '--complete_outfile {output.complete} --verbosity 4 2>&1 | tee {log}'
+        '--complete_outfile {output.complete} --verbosity 3 2>&1 | tee {log}'
 
 for id_group, group_name in zip(GROUPED_IDS, GROUP_NAMES):
     # This rule just forces the find_all_bound_pairs rules to run in batches
@@ -91,51 +92,48 @@ rule find_unique_bound_pairs:
                pdb_id=PDB_IDS),
         group_names=expand('processed/checks/{group_name}', group_name=GROUP_NAMES)
     log:
-        'logs/find_unique_bound_pairs/log.log'
+        'logs/find_unique_bound_pairs.log'
     output:
         'processed/bound_pairs/fragmented/unique_bound_pairs.csv',
     shell:
         'python3 scripts/find_unique_bound_pairs.py {output} {input.bound_pairs} '\
-        '--verbosity 4  2>&1 | tee {log}'
+        '--verbosity 3 2>&1 | tee {log}'
 
-rule distance_matrix:
-    input:
-        bound_pairs='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
-    output:
-        distance_matrix='processed/bound_pairs/fragmented/distance_matrix.npy',
-    script:
-        'scripts/generate_distance_matrix.py'
-
-rule split_dataset:
-    # Use this distance matrix to split the samples into different groups.
-    #   Each group should contain similar samples, so that we can e.g.
-    #   learn with one group and use another to assess generalisation ability.
-    input:
-        'processed/bound_pairs/fragmented/distance_matrix.npy',
-    output:
-        expand('processed/dataset_raw/{data_group}/positive.csv',
-               data_group=DATA_GROUPS)
-    script:
-        'scripts/split_dataset.py'
-
-rule generate_negatives:
+rule generate_simple_negatives:
     # Within each group, permute cdrs and targets to generate (assumed) negative
     #   examples
     input:
-        'processed/dataset_raw/{data_group}/positive.csv'
+        positives='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
+    log:
+        'logs/generate_simple_negatives.log'
     output:
-        'processed/dataset_raw/{data_group}/negative.csv'
-    script:
-        'scripts/generate_negatives.py'
+        combined='processed/simple_negatives.csv'
+    shell:
+        'python3 scripts/generate_simple_negatives.py {input.positives} '\
+        '{output.combined} 2>&1 | tee {log}'
 
-rule generate_representations:
+rule generate_simple_representations:
     # For each group, generate the representations for both positive and negative
     #   data, and also produce the labels file.
     input:
-         expand('processed/dataset_raw/{{data_group}}/{label}.csv',
-                label=LABELS)
+         positives='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
+         negatives='processed/simple_negatives.csv'
     output:
-         expand('processed/dataset/{{data_group}}/{data_type}.npy',
-                data_type=DATA_TYPES)
+         features='processed/N1_R1/features.npy',
+         labels='processed/N1_R1/labels.npy'
     script:
-         'scripts/generate_representations.py'
+         'scripts/generate_simple_representations.py'
+
+rule split_dataset_random:
+    input:
+        features='processed/N1_R1/features.npy',
+        labels='processed/N1_R1/labels.npy'
+    params:
+        group_proportions=DATA_GROUP_PROPORTIONS
+    output:
+        expand('datasets/N1_R1_S1/{data_group}/features.npy',
+               data_group=DATA_GROUPS),
+        expand('datasets/N1_R1_S1/{data_group}/labels.npy',
+               data_group=DATA_GROUPS)
+    script:
+        'scripts/split_dataset_random.py'
