@@ -245,29 +245,35 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None):
 
         donor_row = combined_df.iloc[d_ind, :]
         acceptor_row = combined_df.iloc[a_ind, :]
-        similarity = distances.calculate_similarity_score_alignment(donor_row, acceptor_row)
 
-        # We assume that exchanging the CDR of the acceptor row for the CDR of the donor row
-        #   will produce a negative sample when similarity is less than 0
-        if similarity < 0:
-            negative = acceptor_row.copy()
-            negative.loc['original_cdr_bp_id_str'] = acceptor_row['cdr_bp_id_str']
-            negative.loc['original_cdr_resnames'] = acceptor_row['cdr_resnames']
-            negative.loc['original_cdr_pdb_id'] = acceptor_row['cdr_pdb_id']
+        # Check if this combination would produce a duplicate
+        is_duplicate = ((combined_df['cdr_resnames'] == donor_row['cdr_resnames']) &
+                        (combined_df['target_resnames'] == acceptor_row['target_resnames'])).sum()
+        if not is_duplicate:
+            # Check if these rows are sufficiently different to allow permutation
+            similarity = distances.calculate_similarity_score_alignment(donor_row, acceptor_row)
 
-            negative.loc['cdr_bp_id_str'] = donor_row['cdr_bp_id_str']
-            negative.loc['cdr_resnames'] = donor_row['cdr_resnames']
-            negative.loc['cdr_pdb_id'] = donor_row['cdr_pdb_id']
+            # We assume that exchanging the CDR of the acceptor row for the CDR of the donor row
+            #   will produce a negative sample when similarity is less than 0
+            if similarity < 0:
+                negative = acceptor_row.copy()
+                negative.loc['original_cdr_bp_id_str'] = acceptor_row['cdr_bp_id_str']
+                negative.loc['original_cdr_resnames'] = acceptor_row['cdr_resnames']
+                negative.loc['original_cdr_pdb_id'] = acceptor_row['cdr_pdb_id']
 
-            negative.loc['binding_observed'] = 0
+                negative.loc['cdr_bp_id_str'] = donor_row['cdr_bp_id_str']
+                negative.loc['cdr_resnames'] = donor_row['cdr_resnames']
+                negative.loc['cdr_pdb_id'] = donor_row['cdr_pdb_id']
 
-            combined_df = combined_df.append(negative)
+                negative.loc['binding_observed'] = 0
 
-            num_negatives_produced += 1
+                combined_df = combined_df.append(negative)
+
+                num_negatives_produced += 1
 
         num_tried += 1
 
-        if num_negatives_produced % 100 == 0:
+        if num_negatives_produced and num_negatives_produced % 100 == 0:
             logging.info(f"Produced {num_negatives_produced} negatives "
                          f"from {num_tried} attempts. Latest was \n{negative}")
 

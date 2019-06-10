@@ -41,12 +41,10 @@ def calculate_distance_matrix(bound_pairs_df):
     distance_matrix = np.zeros((num_rows, num_rows))
 
     for i in range(num_rows):
-        for j in range(i):
-            cdr_distance = calculate_alignment_score(bound_pairs_df.loc[i, 'cdr_resnames'],
-                                                     bound_pairs_df.loc[j, 'cdr_resnames'])
-            target_distance = calculate_alignment_score(bound_pairs_df.loc[i, 'target_resnames'],
-                                                        bound_pairs_df.loc[j, 'target_resnames'])
-            distance = cdr_distance + target_distance
+        for j in range(i + 1):
+            distance = calculate_similarity_score_alignment(bound_pairs_df.iloc[i, :],
+                                                            bound_pairs_df.iloc[j, :])
+
             distance_matrix[i][j] = distance
             distance_matrix[j][i] = distance
 

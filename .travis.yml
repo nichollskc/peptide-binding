@@ -22,6 +22,8 @@ install:
 
 script:
   - source activate rationaldesign
+  - coverage run -m unittest -v discover
+  - coverage report -m
   # Test the snakemake workflow with qsub to check jobs are grouped properly
   - KCN_CURRENT_DIR=$(pwd) snakemake processed/bound_pairs/fragmented/unique_bound_pairs.csv --cluster "qsub -q s1" --jobs 2 --dryrun
   - KCN_CURRENT_DIR=$(pwd) snakemake processed/bound_pairs/fragmented/unique_bound_pairs.csv
