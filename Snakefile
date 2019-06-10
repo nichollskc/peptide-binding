@@ -25,7 +25,7 @@ def get_random_pdb_ids(k=1000):
     return rand_ids
 
 def group_ids(ids):
-    groups = []
+    groups = {}
     group_names = []
 
     for char in string.ascii_lowercase + string.digits:
@@ -33,10 +33,14 @@ def group_ids(ids):
         matches = list(filter(pattern.match, ids))
 
         if matches:
-            groups.append(matches)
+            groups[char] = matches
             group_names.append(char)
 
     return groups, group_names
+
+def group_name_to_csv_files(wildcards):
+    id_group = GROUPED_IDS[wildcards.group_name]
+    return expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
 
 PDB_IDS = get_all_pdb_ids()
 
@@ -74,17 +78,16 @@ rule find_all_bound_pairs:
         '--fragmented_outfile {output.fragmented} ' \
         '--complete_outfile {output.complete} --verbosity 3 2>&1 | tee {log}'
 
-for id_group, group_name in zip(GROUPED_IDS, GROUP_NAMES):
-    # This rule just forces the find_all_bound_pairs rules to run in batches
-        #   by placing them in the same rule group, and forcing aggregation in
-        #   this rule
-    rule:
-        input:
-            expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
-        output:
-            touch('processed/checks/' + group_name)
-        group:
-            'bound_pairs'
+rule aggregate_bound_pairs:
+# This rule just forces the find_all_bound_pairs rules to run in batches
+    #   by placing them in the same rule group, and forcing aggregation in
+    #   this rule
+    input:
+        group_name_to_csv_files
+    output:
+        touch('processed/checks/{group_name}')
+    group:
+        'bound_pairs'
 
 rule find_unique_bound_pairs:
     input:
@@ -107,7 +110,7 @@ rule generate_simple_negatives:
     log:
         'logs/generate_simple_negatives.log'
     output:
-        combined='processed/simple_negatives.csv'
+        combined='processed/bound_pairs_simple_negatives.csv'
     shell:
         'python3 scripts/generate_simple_negatives.py {input.positives} '\
         '{output.combined} --verbosity 3 2>&1 | tee {log}'

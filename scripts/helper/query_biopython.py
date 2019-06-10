@@ -244,8 +244,8 @@ def find_targets_from_pdb(pdb_id, cdr_indices, ids_df, neighbor_search, all_resi
                             for res in cdr_residues_from_bp]
 
     assert cdr_resnames_from_bp == list(cdr_resnames_from_ids),\
-        "Error in PDB file {}. Residue names from ids list and " \
-        "Biopython parser should match.".format(pdb_id)
+        f"Error in PDB file {pdb_id}. Residue names from ids list and " \
+        "Biopython parser should match."
 
     bound_pairs = []
     bound_pairs_fragmented = []
