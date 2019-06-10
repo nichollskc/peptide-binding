@@ -21,6 +21,8 @@ install:
   - conda env create -f environment.yml
   - git submodule update --init --recursive
   - cd seq-align && make
+  # Return to original directory
+  - cd -
 
 script:
   - source activate rationaldesign
