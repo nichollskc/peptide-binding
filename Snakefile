@@ -115,28 +115,34 @@ rule generate_simple_negatives:
         'python3 scripts/generate_simple_negatives.py {input.positives} '\
         '{output.combined} --verbosity 3 2>&1 | tee {log}'
 
-rule generate_simple_representations:
+rule split_dataset_random:
+    input:
+        combined=rules.generate_simple_negatives.output.combined,
+    params:
+        group_proportions=DATA_GROUP_PROPORTIONS
+    log:
+        'logs/split_dataset_random.log'
+    output:
+        data_filenames=expand('datasets/alpha/{data_group}/bound_pairs.csv',
+                              data_group=DATA_GROUPS),
+        label_filenames=expand('datasets/alpha/{data_group}/labels.npy',
+                               data_group=DATA_GROUPS)
+    shell:
+        'python3 scripts/split_dataset_random.py --input {input.combined} '\
+        '--group_proportions {params.group_proportions} '\
+        '--data_filenames {output.data_filenames} '\
+        '--label_filenames {output.label_filenames} '\
+        '--seed 13 --verbosity 3 2>&1 | tee {log}'
+
+rule generate_representations:
     # For each group, generate the representations for both positive and negative
     #   data, and also produce the labels file.
     input:
-         positives='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
-         negatives='processed/simple_negatives.csv'
-    output:
-         features='processed/N1_R1/features.npy',
-         labels='processed/N1_R1/labels.npy'
-    script:
-         'scripts/generate_simple_representations.py'
-
-rule split_dataset_random:
-    input:
-        features='processed/N1_R1/features.npy',
-        labels='processed/N1_R1/labels.npy'
+         dataset='datasets/alpha/{data_group}/bound_pairs.csv'
     params:
-        group_proportions=DATA_GROUP_PROPORTIONS
+        representation='{representation}'
     output:
-        expand('datasets/N1_R1_S1/{data_group}/features.npy',
-               data_group=DATA_GROUPS),
-        expand('datasets/N1_R1_S1/{data_group}/labels.npy',
-               data_group=DATA_GROUPS)
-    script:
-        'scripts/split_dataset_random.py'
+         outfile='datasets/alpha/{data_group}/data_{representation}.npy'
+    shell:
+         'python3 scripts/generate_simple_representations.py {input.dataset} '\
+         '{output.outfile} {params.representation} --verbosity 3 2>&1 | tee {log}'
