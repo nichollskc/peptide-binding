@@ -7,7 +7,7 @@ import numpy as np
 
 def calculate_alignment_score(seq1, seq2):
     """Calculates the alignment score between two protein sequences."""
-    full_cmd = "/Users/kath/tools/seq-align/bin/needleman_wunsch " \
+    full_cmd = "seq-align/bin/needleman_wunsch " \
                "--scoring BLOSUM62 --printscores --gapopen 0 " \
                "{} {}".format(seq1, seq2)
     alignment = subprocess.run(full_cmd.split(" "), capture_output=True)
