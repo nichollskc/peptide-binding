@@ -110,7 +110,7 @@ rule generate_simple_negatives:
         combined='processed/simple_negatives.csv'
     shell:
         'python3 scripts/generate_simple_negatives.py {input.positives} '\
-        '{output.combined} 2>&1 | tee {log}'
+        '{output.combined} --verbosity 3 2>&1 | tee {log}'
 
 rule generate_simple_representations:
     # For each group, generate the representations for both positive and negative

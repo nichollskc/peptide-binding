@@ -22,11 +22,11 @@ parser.add_argument("--verbosity",
                     type=int,
                     choices=[0, 1, 2, 3, 4])
 
-parser.add_argument('output_file',
-                    help="file to write table including labelled positives and negatives")
 parser.add_argument('positive_samples',
                     help="file containing positive examples",
                     type=argparse.FileType('r'))
+parser.add_argument('output_file',
+                    help="file to write table including labelled positives and negatives")
 
 args = parser.parse_args()
 
