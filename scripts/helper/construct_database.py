@@ -96,7 +96,7 @@ def find_target_indices_from_matrix(matrix, cdr_indices):
 def print_targets_to_file(bound_pairs, filename):
     """Prints bound pairs to csv file."""
     df = pd.DataFrame(bound_pairs)
-    df.to_csv(filename, header=True, index=False, quoting=csv.QUOTE_ALL)
+    utils.save_df_csv_quoted(df, filename)
 
 
 def find_bound_pairs(pdb_id, fragment_length):

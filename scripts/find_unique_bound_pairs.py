@@ -2,6 +2,7 @@
 removes duplicated pairs from the list."""
 # pylint: disable=wrong-import-position
 import argparse
+import csv
 import logging
 import os
 import sys
@@ -9,6 +10,7 @@ sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 import scripts.helper.construct_database as con_dat
 import scripts.helper.log_utils as log_utils
+import scripts.helper.utils as utils
 
 parser = argparse.ArgumentParser(description="Given a list of tables with each row "
                                              "giving a CDR-like fragment and its target, combines "
@@ -43,6 +45,6 @@ no_duplicates = con_dat.remove_duplicate_rows(all_bound_pairs,
 logging.info(f"Number of bound pairs after removing duplicates: {no_duplicates.shape[0]}")
 
 logging.info(f"Saving to file {args.output_file}")
-no_duplicates.to_csv(args.output_file, header=True, index=None)
+utils.save_df_csv_quoted(no_duplicates, args.output_file)
 
 logging.info("Done")
