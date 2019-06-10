@@ -46,28 +46,66 @@ def residue_features():
     return np.array(prop1)
 
 
-def generate_meiler_representation(resnames):
+def generate_onehot(resnames):
     """Generates the representation of a string of residues, where each is
-    represented by an array of length NUM_FEATURES. The first 21 give the
-    one-hot representation of the amino acid type and the final 7 give the
-    Meiler criteria for that residue.
+    represented by an array. Each array contains the one-hot representation of
+    the residue type.
 
     Returns an array where each row is one amino acid, and each column is a feature."""
     ints = resnames_to_ints(resnames)
-
-    meiler = residue_features()[ints]
     onehot = tf.keras.utils.to_categorical(ints, num_classes=len(residues_order))
+    return onehot
+
+
+def generate_bagofwords(resnames):
+    """Generates the bag of words representation of a string of residues. Each value
+    represents the number of occurrences of that amino acid in the string."""
+    onehot = generate_onehot(resnames)
+
+    return onehot.sum(axis=0)
+
+
+def generate_crossed_bagofwords(cdr_resnames, target_resnames):
+    """Return the flattened matrix where each entry (i, j) indicates the number of
+    times that there is a pair (C_i, T_j) i.e. that amino acid i appears in the
+    CDR and amino acid j appears in the target. Length of the array will be
+    21x21=441."""
+    cdr_bagofwords = generate_bagofwords(cdr_resnames)
+    target_bagofwords = generate_bagofwords(target_resnames)
+
+    return np.outer(cdr_bagofwords, target_bagofwords).flatten()
+
+
+def generate_meiler(resnames):
+    """Generates the representation of a string of residues, where each is
+    represented by an array. Each array contains the 7 Meiler criteria for that residue.
+
+    Returns an array where each row is one amino acid, and each column is a feature."""
+    ints = resnames_to_ints(resnames)
+    meiler = residue_features()[ints]
+
+    return meiler
+
+
+def generate_onehot_meiler(resnames):
+    """Generates the representation of a string of residues, where each is
+    represented by an array. The first 21 give the one-hot representation of
+    the residue type and the final 7 give the Meiler criteria for that residue.
+
+    Returns an array where each row is one amino acid, and each column is a feature."""
+    meiler = generate_meiler(resnames)
+    onehot = generate_onehot(resnames)
 
     return np.concatenate((onehot, meiler), axis=1)
 
 
-def generate_padded_meiler_representation(resnames, max_length):
+def generate_padded_onehot_meiler(resnames, max_length):
     """Generate the representation as in generate_meiler_representation, but
     pad the sequence with zeros to max_length.
 
     Return the padded sequence and a mask indicating which are true entries and
     which are just padding."""
-    cdr_mat = generate_meiler_representation(resnames)
+    cdr_mat = generate_onehot_meiler(resnames)
     cdr_mat_pad = np.zeros((max_length, NUM_FEATURES))
     cdr_mat_pad[:cdr_mat.shape[0], :] = cdr_mat
 
