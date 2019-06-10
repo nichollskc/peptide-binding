@@ -1,6 +1,5 @@
 """Constructs database of interacting fragments."""
 
-import csv
 import json
 import logging
 import random
@@ -276,5 +275,23 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None):
         if num_negatives_produced and num_negatives_produced % 100 == 0:
             logging.info(f"Produced {num_negatives_produced} negatives "
                          f"from {num_tried} attempts. Latest was \n{negative}")
+        if num_tried and num_tried % 1000 == 0:
+            logging.info(f"Attempted {num_tried} pairs. "
+                         f"Generated {num_negatives_produced} negatives.")
 
     return combined_df
+
+
+def split_dataset_random(data_frame, group_proportions, seed=42):
+    """Splits the rows of a data frame randomly into groups according to the group
+    proportions. Group proportions should be a list e.g. [60, 20, 20]."""
+    # np.split requires a list of cummulative fractions for the groups
+    #   e.g. [60, 20, 20] -> [0.6, 0.2, 0.2] -> [0.6, 0.6 + 0.2] = [0.6, 0.8]
+    fractions = np.cumsum([group_proportions])[:-1] / 100
+
+    logging.info(f"Intended fractions are {fractions}")
+    counts = list(map(int, (fractions * len(data_frame))))
+    logging.info(f"Intended counts per group are {counts}")
+    grouped_dfs = np.split(data_frame.sample(frac=1, random_state=seed), counts)
+
+    return grouped_dfs

@@ -1,13 +1,17 @@
 """Given a list of CDR-like fragments and the target fragments they interact with,
 split the list into train, test and validate."""
+# pylint: disable=wrong-import-position
 import argparse
 import logging
 import os
 import sys
 sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
+import numpy as np
+
 import scripts.helper.construct_database as con_dat
 import scripts.helper.log_utils as log_utils
+import scripts.helper.utils as utils
 
 parser = argparse.ArgumentParser(description="Given a list of CDR-like fragments and the "
                                              "target fragments they interact with, split the "
@@ -62,6 +66,23 @@ logging.info(f"Splitting rows from file '{args.input}' groups of data: "
              f"{list(zip(data_filenames, label_filenames, group_proportions))}.")
 
 bound_pairs_df = con_dat.read_bound_pairs(args.input)
-logging.info(f"Number of bound pairs in complete table: {bound_pairs_df.shape[0]}")
+total_bound_pairs = len(bound_pairs_df)
+logging.info(f"Number of bound pairs in complete table: {total_bound_pairs}")
+
+grouped_dfs = con_dat.split_dataset_random(bound_pairs_df, group_proportions, args.seed)
+
+logging.info(f"Split data into {len(grouped_dfs)} sections.")
+
+for df, label_file, data_file, intended_proportion in zip(grouped_dfs,
+                                                          label_filenames,
+                                                          data_filenames,
+                                                          group_proportions):
+    logging.info(f"Saving data frame of size {len(df)} to file '{data_file}', "
+                 f"saving labels to file '{label_file}'.")
+    logging.info(f"Intended proportion is {intended_proportion}, actual proportion "
+                 f"is {len(df)/total_bound_pairs}.")
+    utils.save_df_csv_quoted(df, data_file)
+    labels = np.array(df['binding_observed'])
+    np.save(label_file, labels)
 
 logging.info("Done")

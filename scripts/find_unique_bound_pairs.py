@@ -2,7 +2,6 @@
 removes duplicated pairs from the list."""
 # pylint: disable=wrong-import-position
 import argparse
-import csv
 import logging
 import os
 import sys
