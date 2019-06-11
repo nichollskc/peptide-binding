@@ -21,12 +21,19 @@ def calculate_alignment_scores(column_1, column_2):
     """Calculates the alignment score for each row, where the score is the
     alignment between the element in the row in column_1 and the element in the
     row at column_2."""
-    pairs_strings = [" ".join(pair) + "\n" for pair in zip(column_1, column_2)]
-    full_input = bytes("".join(pairs_strings), 'utf-8')
-    alignments = subprocess.run("scripts/helper/run_seq_align.sh",
-                                input=full_input,
+    logging.info(f"Computing aligments between two columns of length "
+                 f"{len(column_1)} and {len(column_2)}")
+    column_1_values = " ".join(column_1)
+    column_2_values = " ".join(column_2)
+    num_procs = 64
+    full_cmd = f"parallel -k -j{num_procs} --link scripts/helper/run_seq_align.sh " \
+               f"::: {column_1_values} ::: {column_2_values}"
+    logging.debug(f"Full command is {full_cmd}")
+    alignments = subprocess.run(full_cmd.split(" "),
                                 capture_output=True)
+    logging.debug(f"Alignments computed. Output is:\n{alignments.stdout.decode('utf-8')}")
     scores = list(map(int, alignments.stdout.decode("utf-8").strip().split("\n")))
+    logging.info(f"Alignments decoded")
     return scores
 
 
