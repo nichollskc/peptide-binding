@@ -1,4 +1,5 @@
 """Calculates distances between bound pairs"""
+import logging
 import re
 import subprocess
 

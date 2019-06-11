@@ -193,9 +193,13 @@ def sample_index_pairs(data_frame, k):
 def generate_proposal_negatives(data_frame, k):
     """Given a data frame, shuffle and pair the rows to produce a set of k proposal
     negative examples. Return these in a data frame."""
+    logging.info(f"Generating {k} negatives for data frame of length {len(data_frame)}")
+
     proposals_df = data_frame.sample(n=k, replace=True).reset_index(drop=True).join(
         data_frame.sample(n=k, replace=True).reset_index(drop=True),
         rsuffix="_donor")
+
+    logging.info(f"Updating column values for these proposals")
     proposals_df['original_cdr_bp_id_str'] = proposals_df['cdr_bp_id_str']
     proposals_df['original_cdr_resnames'] = proposals_df['cdr_resnames']
     proposals_df['original_cdr_pdb_id'] = proposals_df['cdr_pdb_id']
@@ -206,6 +210,8 @@ def generate_proposal_negatives(data_frame, k):
 
     proposals_df['binding_observed'] = 0
 
+    logging.info(f"Updated column values for these proposals")
+
     return proposals_df
 
 
@@ -213,16 +219,26 @@ def remove_invalid_negatives(combined_df):
     """Finds similarity between the rows that have been combined to form negatives
     and removes any that are formed by rows that are too similar. Judged by
     sequence alignment between CDRs and targets."""
-    negatives_df = combined_df[combined_df['binding_observed'] == 0]
-    cdr_scores = distances.calculate_alignment_scores(negatives_df['cdr_resnames'],
-                                                      negatives_df['original_cdr_resnames'])
-    target_scores = distances.calculate_alignment_scores(negatives_df['target_resnames'],
-                                                         negatives_df['target_resnames_donor'])
+    new_negatives_rows = (combined_df['binding_observed'] == 0) & \
+                         (np.isnan(combined_df['similarity_score']))
+    logging.info(f"Verifying {(new_negatives_rows).sum()} new negatives")
+
+    cdr_scores = distances.calculate_alignment_scores(combined_df.loc[new_negatives_rows,
+                                                                      'cdr_resnames'],
+                                                      combined_df.loc[new_negatives_rows,
+                                                                      'original_cdr_resnames'])
+    target_scores = distances.calculate_alignment_scores(combined_df.loc[new_negatives_rows,
+                                                                         'target_resnames'],
+                                                         combined_df.loc[new_negatives_rows,
+                                                                         'target_resnames_donor'])
+
+    logging.info(f"Computed scores")
     total_scores = [sum(scores) for scores in zip(cdr_scores, target_scores)]
-    combined_df.loc[combined_df['binding_observed'] == 0, 'similarity_score'] = total_scores
+    combined_df.loc[new_negatives_rows, 'similarity_score'] = total_scores
 
     too_similar_indices = combined_df.index[(combined_df['similarity_score'] >= 0)]
-    combined_df.drop(too_similar_indices, axis=0)
+    logging.info(f"Rejected {len(too_similar_indices)} rows for being too similar")
+    combined_df = combined_df.drop(too_similar_indices, axis=0)
     return combined_df
 
 
@@ -259,6 +275,7 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
     positives_df['target_pdb_id'] = positives_df['pdb_id']
     positives_df = positives_df.drop(columns='pdb_id')
     positives_df['binding_observed'] = 1
+    positives_df['similarity_score'] = np.nan
     combined_df = positives_df.copy()
 
     if k is None:
