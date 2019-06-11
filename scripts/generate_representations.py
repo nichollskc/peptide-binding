@@ -3,6 +3,7 @@ split the list into train, test and validate."""
 # pylint: disable=wrong-import-position
 import argparse
 import logging
+import json
 import os
 import sys
 sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
@@ -30,6 +31,10 @@ required_named.add_argument("--input",
 required_named.add_argument("--output_file",
                             required=True,
                             help="file to store representation e.g. training/data_meiler.npy")
+required_named.add_argument("--fragment_lengths_file",
+                            required=True,
+                            type=argparse.FileType('r'),
+                            help="file containing information about lengths of fragments in data")
 required_named.add_argument("--representation",
                             required=True,
                             help="""
@@ -65,9 +70,9 @@ elif args.representation == 'product_bag_of_words':
     representation_matrix = reps.generate_representation_all(bound_pairs_df,
                                                              reps.generate_crossed_bagofwords)
 elif args.representation == 'padded_meiler_onehot':
-    # Makes assumption that all CDRs in the table are of the same length
-    max_cdr_len = len(bound_pairs_df['cdr_resnames'].iloc[0])
-    max_target_len = bound_pairs_df['target_length'].max()
+    fragment_lengths = json.load(args.fragment_lengths_file)
+    max_cdr_len = fragment_lengths['max_cdr_length']
+    max_target_len = fragment_lengths['max_target_length']
 
     representation_matrix = reps.generate_representation_all(
         bound_pairs_df,
