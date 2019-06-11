@@ -16,6 +16,19 @@ def calculate_alignment_score(seq1, seq2):
     return int(score)
 
 
+def calculate_alignment_scores(column_1, column_2):
+    """Calculates the alignment score for each row, where the score is the
+    alignment between the element in the row in column_1 and the element in the
+    row at column_2."""
+    pairs_strings = [" ".join(pair) + "\n" for pair in zip(column_1, column_2)]
+    full_input = bytes("".join(pairs_strings), 'utf-8')
+    alignments = subprocess.run("scripts/helper/run_seq_align.sh",
+                                input=full_input,
+                                capture_output=True)
+    scores = list(map(int, alignments.stdout.decode("utf-8").strip().split("\n")))
+    return scores
+
+
 def calculate_similarity_score_alignment(row1, row2):
     """Calculates the similarity score between two bound pairs, where they are given
     as rows of a pandas.DataFrame with columns 'cdr_resnames' and 'target_resnames'.
