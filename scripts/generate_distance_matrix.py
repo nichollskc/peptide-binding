@@ -9,7 +9,7 @@ import pandas as pd
 
 sys.path.append(os.environ.get('current_dir'))
 
-import scripts.distances as distances
+import scripts.helper.distances as distances
 
 bound_pairs_df = pd.read_csv(snakemake.input.bound_pairs,
                              index_col=None,
