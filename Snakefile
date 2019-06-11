@@ -47,15 +47,17 @@ PDB_IDS = get_all_pdb_ids()
 GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
 
 LABELS = ['positive', 'negative']
-DATA_TYPES = ['cdrs', 'targets', 'combined', 'labels']
+DATA_TYPES = ['bag_of_words', 'padded_meiler_onehot', 'product_bag_of_words']
 DATA_GROUPS = ['training', 'validation', 'test']
 DATA_GROUP_PROPORTIONS = [60, 20, 20]
 
 rule all:
     input:
-        expand('datasets/dataset_random/{data_group}_{data_type}.npy',
+        expand('datasets/alpha/{data_group}/data_{data_type}.npy',
                data_group=DATA_GROUPS,
-               data_type=DATA_TYPES)
+               data_type=DATA_TYPES),
+        expand('datasets/alpha/{data_group}/labels.npy',
+               data_group=DATA_GROUPS)
 
 rule find_all_bound_pairs:
     input:
@@ -141,8 +143,11 @@ rule generate_representations:
          dataset='datasets/alpha/{data_group}/bound_pairs.csv'
     params:
         representation='{representation}'
+    log:
+        'logs/generate_representations/{data_group}_{representation}.log'
     output:
          outfile='datasets/alpha/{data_group}/data_{representation}.npy'
     shell:
-         'python3 scripts/generate_simple_representations.py {input.dataset} '\
-         '{output.outfile} {params.representation} --verbosity 3 2>&1 | tee {log}'
+         'python3 scripts/generate_representations.py --input {input.dataset} '\
+         '--output_file {output.outfile} --representation {params.representation} '\
+         '--verbosity 3 2>&1 | tee {log}'
