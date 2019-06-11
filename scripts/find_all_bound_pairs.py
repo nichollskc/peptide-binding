@@ -52,9 +52,16 @@ matrix = con_dat.read_matrix_from_file(pdb_id)
 
 logging.info("Read in matrix")
 
-bound_pairs, bound_pairs_fragmented = query_bp.find_all_binding_pairs(matrix,
-                                                                      pdb_id,
-                                                                      fragment_length)
+try:
+    bound_pairs, bound_pairs_fragmented = query_bp.find_all_binding_pairs(matrix,
+                                                                          pdb_id,
+                                                                          fragment_length)
+except AssertionError as e:
+    logging.error(f"Error while searching for bound pairs in file with PDB ID '{pdb_id}'. "
+                  f"Will output empty file. "
+                  f"Error message was: {e.args[0]}.")
+    bound_pairs = []
+    bound_pairs_fragmented = []
 
 logging.info(f"Number of bound pairs: {len(bound_pairs)}")
 logging.info(f"Number of fragmented bound pairs: {len(bound_pairs_fragmented)}")

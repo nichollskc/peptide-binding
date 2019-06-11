@@ -12,6 +12,7 @@ import pandas as pd
 
 import scripts.helper.construct_database as con_dat
 import scripts.helper.log_utils as log_utils
+import scripts.helper.utils as utils
 
 parser = argparse.ArgumentParser(description="Given a list of CDR-like fragments and the "
                                              "target fragments they interact with, generate "
@@ -42,6 +43,6 @@ combined_df = con_dat.generate_negatives_alignment_threshold(positives_df)
 
 logging.info(f"Writing positive and negative examples to file '{args.output_file}'.")
 
-combined_df.to_csv(args.output_file, header=True)
+utils.save_df_csv_quoted(combined_df, args.output_file)
 
 logging.info("Done")

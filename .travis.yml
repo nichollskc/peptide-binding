@@ -29,5 +29,5 @@ script:
   - coverage run -m unittest discover -v
   - coverage report -m
   # Test the snakemake workflow with qsub to check jobs are grouped properly
-  - KCN_CURRENT_DIR=$(pwd) snakemake processed/simple_negatives.csv --cluster "qsub -q s1" --jobs 2 --dryrun
-  - KCN_CURRENT_DIR=$(pwd) snakemake processed/simple_negatives.csv
+  - KCN_CURRENT_DIR=$(pwd) snakemake datasets/alpha/training/bound_pairs.csv --cluster "qsub -q s1 -V" --jobs 2 --dryrun
+  - KCN_CURRENT_DIR=$(pwd) snakemake datasets/alpha/training/bound_pairs.csv

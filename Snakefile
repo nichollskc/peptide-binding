@@ -25,7 +25,7 @@ def get_random_pdb_ids(k=1000):
     return rand_ids
 
 def group_ids(ids):
-    groups = []
+    groups = {}
     group_names = []
 
     for char in string.ascii_lowercase + string.digits:
@@ -33,10 +33,14 @@ def group_ids(ids):
         matches = list(filter(pattern.match, ids))
 
         if matches:
-            groups.append(matches)
+            groups[char] = matches
             group_names.append(char)
 
     return groups, group_names
+
+def group_name_to_csv_files(wildcards):
+    id_group = GROUPED_IDS[wildcards.group_name]
+    return expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
 
 PDB_IDS = get_all_pdb_ids()
 
@@ -74,17 +78,16 @@ rule find_all_bound_pairs:
         '--fragmented_outfile {output.fragmented} ' \
         '--complete_outfile {output.complete} --verbosity 3 2>&1 | tee {log}'
 
-for id_group, group_name in zip(GROUPED_IDS, GROUP_NAMES):
-    # This rule just forces the find_all_bound_pairs rules to run in batches
-        #   by placing them in the same rule group, and forcing aggregation in
-        #   this rule
-    rule:
-        input:
-            expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
-        output:
-            touch('processed/checks/' + group_name)
-        group:
-            'bound_pairs'
+rule aggregate_bound_pairs:
+# This rule just forces the find_all_bound_pairs rules to run in batches
+    #   by placing them in the same rule group, and forcing aggregation in
+    #   this rule
+    input:
+        group_name_to_csv_files
+    output:
+        touch('processed/checks/{group_name}')
+    group:
+        'bound_pairs'
 
 rule find_unique_bound_pairs:
     input:
@@ -107,33 +110,39 @@ rule generate_simple_negatives:
     log:
         'logs/generate_simple_negatives.log'
     output:
-        combined='processed/simple_negatives.csv'
+        combined='processed/bound_pairs_simple_negatives.csv'
     shell:
         'python3 scripts/generate_simple_negatives.py {input.positives} '\
         '{output.combined} --verbosity 3 2>&1 | tee {log}'
 
-rule generate_simple_representations:
+rule split_dataset_random:
+    input:
+        combined=rules.generate_simple_negatives.output.combined,
+    params:
+        group_proportions=DATA_GROUP_PROPORTIONS
+    log:
+        'logs/split_dataset_random.log'
+    output:
+        data_filenames=expand('datasets/alpha/{data_group}/bound_pairs.csv',
+                              data_group=DATA_GROUPS),
+        label_filenames=expand('datasets/alpha/{data_group}/labels.npy',
+                               data_group=DATA_GROUPS)
+    shell:
+        'python3 scripts/split_dataset_random.py --input {input.combined} '\
+        '--group_proportions {params.group_proportions} '\
+        '--data_filenames {output.data_filenames} '\
+        '--label_filenames {output.label_filenames} '\
+        '--seed 13 --verbosity 3 2>&1 | tee {log}'
+
+rule generate_representations:
     # For each group, generate the representations for both positive and negative
     #   data, and also produce the labels file.
     input:
-         positives='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
-         negatives='processed/simple_negatives.csv'
-    output:
-         features='processed/N1_R1/features.npy',
-         labels='processed/N1_R1/labels.npy'
-    script:
-         'scripts/generate_simple_representations.py'
-
-rule split_dataset_random:
-    input:
-        features='processed/N1_R1/features.npy',
-        labels='processed/N1_R1/labels.npy'
+         dataset='datasets/alpha/{data_group}/bound_pairs.csv'
     params:
-        group_proportions=DATA_GROUP_PROPORTIONS
+        representation='{representation}'
     output:
-        expand('datasets/N1_R1_S1/{data_group}/features.npy',
-               data_group=DATA_GROUPS),
-        expand('datasets/N1_R1_S1/{data_group}/labels.npy',
-               data_group=DATA_GROUPS)
-    script:
-        'scripts/split_dataset_random.py'
+         outfile='datasets/alpha/{data_group}/data_{representation}.npy'
+    shell:
+         'python3 scripts/generate_simple_representations.py {input.dataset} '\
+         '{output.outfile} {params.representation} --verbosity 3 2>&1 | tee {log}'
