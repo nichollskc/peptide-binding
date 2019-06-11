@@ -33,15 +33,18 @@ required_named.add_argument("--input",
                             help="csv file where each row is a bound pair")
 required_named.add_argument("--data_filenames",
                             nargs='+',
+                            required=True,
                             help="list of .csv filenames for data e.g. "
                                  "'--data_filenames training.csv validation.csv test.csv'")
 required_named.add_argument("--label_filenames",
                             nargs='+',
+                            required=True,
                             help="list of .npy filenames for labels e.g. "
                                  "'--label_filenames training_y.npy validation_y.npy test_y.npy'")
 required_named.add_argument("--group_proportions",
                             type=int,
                             nargs='+',
+                            required=True,
                             help="list of proportions each group should be assigned e.g. "
                                  "'--group_proportions 50 25 25'. Must add up to 100.")
 
