@@ -99,10 +99,11 @@ rule find_unique_bound_pairs:
     log:
         'logs/find_unique_bound_pairs.log'
     output:
-        'processed/bound_pairs/fragmented/unique_bound_pairs.csv',
+        bound_pairs='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
+        fragment_lengths='processed/bound_pairs/fragmented/fragment_lengths.txt'
     shell:
-        'python3 scripts/find_unique_bound_pairs.py {output} {input.bound_pairs} '\
-        '--verbosity 3 2>&1 | tee {log}'
+        'python3 scripts/find_unique_bound_pairs.py {output.bound_pairs} {input.bound_pairs} '\
+        '--fragment_lengths_out {output.fragment_lengths} --verbosity 3 2>&1 | tee {log}'
 
 rule generate_simple_negatives:
     # Within each group, permute cdrs and targets to generate (assumed) negative
@@ -140,7 +141,8 @@ rule generate_representations:
     # For each group, generate the representations for both positive and negative
     #   data, and also produce the labels file.
     input:
-         dataset='datasets/alpha/{data_group}/bound_pairs.csv'
+         dataset='datasets/alpha/{data_group}/bound_pairs.csv',
+         fragment_lengths='processed/bound_pairs/fragmented/fragment_lengths.txt'
     params:
         representation='{representation}'
     log:
@@ -150,4 +152,4 @@ rule generate_representations:
     shell:
          'python3 scripts/generate_representations.py --input {input.dataset} '\
          '--output_file {output.outfile} --representation {params.representation} '\
-         '--verbosity 3 2>&1 | tee {log}'
+         '--fragment_lengths_file {input.fragment_lengths} --verbosity 3 2>&1 | tee {log}'

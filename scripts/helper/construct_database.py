@@ -147,8 +147,12 @@ def remove_duplicate_rows(data_frame, columns):
         pandas.DataFrame: data frame which is a copy of the original but with
             duplicated rows removed.
     """
+    logging.info(f"Removing duplicates from dataframe with {len(data_frame)} rows, "
+                 f"based on the columns {columns}.")
     row_is_duplicate = data_frame.duplicated(columns, keep='first')
     no_duplicates = data_frame[~ row_is_duplicate]
+    logging.info(f"After removing duplicates based on columns {columns}, data frame "
+                 f"now has {len(no_duplicates)} rows.")
 
     return no_duplicates
 
@@ -190,7 +194,59 @@ def sample_index_pairs(data_frame, k):
     return zip(random_acceptors, random_donors)
 
 
-def generate_negatives_alignment_threshold(bound_pairs_df, k=None):
+def generate_proposal_negatives(data_frame, k):
+    """Given a data frame, shuffle and pair the rows to produce a set of k proposal
+    negative examples. Return these in a data frame."""
+    logging.info(f"Generating {k} negatives for data frame of length {len(data_frame)}")
+
+    proposals_df = data_frame.sample(n=k, replace=True).reset_index(drop=True).join(
+        data_frame.sample(n=k, replace=True).reset_index(drop=True),
+        rsuffix="_donor")
+
+    logging.info(f"Updating column values for these proposals")
+    proposals_df['original_cdr_bp_id_str'] = proposals_df['cdr_bp_id_str']
+    proposals_df['original_cdr_resnames'] = proposals_df['cdr_resnames']
+    proposals_df['original_cdr_pdb_id'] = proposals_df['cdr_pdb_id']
+
+    proposals_df['cdr_bp_id_str'] = proposals_df['cdr_bp_id_str_donor']
+    proposals_df['cdr_resnames'] = proposals_df['cdr_resnames_donor']
+    proposals_df['cdr_pdb_id'] = proposals_df['cdr_pdb_id_donor']
+
+    proposals_df['binding_observed'] = 0
+
+    logging.info(f"Updated column values for these proposals")
+
+    return proposals_df
+
+
+def remove_invalid_negatives(combined_df):
+    """Finds similarity between the rows that have been combined to form negatives
+    and removes any that are formed by rows that are too similar. Judged by
+    sequence alignment between CDRs and targets."""
+    new_negatives_rows = (combined_df['binding_observed'] == 0) & \
+                         (np.isnan(combined_df['similarity_score']))
+    logging.info(f"Verifying {(new_negatives_rows).sum()} new negatives")
+
+    cdr_scores = distances.calculate_alignment_scores(combined_df.loc[new_negatives_rows,
+                                                                      'cdr_resnames'],
+                                                      combined_df.loc[new_negatives_rows,
+                                                                      'original_cdr_resnames'])
+    target_scores = distances.calculate_alignment_scores(combined_df.loc[new_negatives_rows,
+                                                                         'target_resnames'],
+                                                         combined_df.loc[new_negatives_rows,
+                                                                         'target_resnames_donor'])
+
+    logging.info(f"Computed scores")
+    total_scores = [sum(scores) for scores in zip(cdr_scores, target_scores)]
+    combined_df.loc[new_negatives_rows, 'similarity_score'] = total_scores
+
+    too_similar_indices = combined_df.index[(combined_df['similarity_score'] >= 0)]
+    logging.info(f"Rejected {len(too_similar_indices)} rows for being too similar")
+    combined_df = combined_df.drop(too_similar_indices, axis=0)
+    return combined_df
+
+
+def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
     """Given a data frame consisting of bound pairs (i.e. positive examples of
     binding), return a copy with extra rows corresponding to negative examples.
     Negatives are formed by exchanging the CDR of one row for the CDR of another,
@@ -216,11 +272,15 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None):
     For each of cdr, target and original_cdr there are fields for PDB id, biopython
     ID string and resnames.
     """
-    combined_df = bound_pairs_df.copy()
-    combined_df['cdr_pdb_id'] = combined_df['pdb_id']
-    combined_df['target_pdb_id'] = combined_df['pdb_id']
-    combined_df = combined_df.drop(columns='pdb_id')
-    combined_df['binding_observed'] = 1
+    np.random.seed(seed)
+
+    positives_df = bound_pairs_df.copy()
+    positives_df['cdr_pdb_id'] = positives_df['pdb_id']
+    positives_df['target_pdb_id'] = positives_df['pdb_id']
+    positives_df = positives_df.drop(columns='pdb_id')
+    positives_df['binding_observed'] = 1
+    positives_df['similarity_score'] = np.nan
+    combined_df = positives_df.copy()
 
     if k is None:
         k = len(bound_pairs_df.index)
@@ -228,56 +288,35 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None):
     logging.info(f"Generating {k} negative examples for dataset "
                  f"containing {len(bound_pairs_df.index)} positive examples.")
 
-    random_index_pairs = sample_index_pairs(bound_pairs_df, k)
+    while len(combined_df) < k + len(positives_df):
+        # Generate proposals which might be negative - by shuffling two versions of
+        #   the positives data frame
+        # Usually requires about 3 * k attempts to get k negatives, but we should limit to
+        #   batches of 20000 to avoid issues with the command line tools
+        num_proposals = min(3 * k, 20000)
+        proposals_df = generate_proposal_negatives(positives_df, num_proposals)
 
-    num_negatives_produced = 0
-    num_tried = 0
-    while num_negatives_produced < k:
-        try:
-            d_ind, a_ind = next(random_index_pairs)
-        except StopIteration:
-            # The list is empty, so let's repopulate it and then pop a sample
-            #   from the updated list
-            logging.info(f"Sampling {k} new pairs of rows.")
-            random_index_pairs = sample_index_pairs(bound_pairs_df, k)
-            d_ind, a_ind = next(random_index_pairs)
+        # Combine the positives and proposed negatives, and remove duplicate values
+        combined_df = pd.concat([combined_df, proposals_df], sort=False).reset_index(drop=True)
+        combined_df = remove_duplicate_rows(combined_df,
+                                            ['cdr_resnames', 'target_resnames'])
 
-        donor_row = combined_df.iloc[d_ind, :]
-        acceptor_row = combined_df.iloc[a_ind, :]
+        combined_df = remove_invalid_negatives(combined_df)
 
-        # Check if this combination would produce a duplicate
-        is_duplicate = ((combined_df['cdr_resnames'] == donor_row['cdr_resnames']) &
-                        (combined_df['target_resnames'] == acceptor_row['target_resnames'])).sum()
-        if not is_duplicate:
-            # Check if these rows are sufficiently different to allow permutation
-            similarity = distances.calculate_similarity_score_alignment(donor_row, acceptor_row)
+        # Save the data frame as a checkpoint
+        negatives_df = combined_df[combined_df['binding_observed'] == 0]
+        negatives_df.to_csv(".tmp.negatives_df.csv")
 
-            # We assume that exchanging the CDR of the acceptor row for the CDR of the donor row
-            #   will produce a negative sample when similarity is less than 0
-            if similarity < 0:
-                negative = acceptor_row.copy()
-                negative.loc['original_cdr_bp_id_str'] = acceptor_row['cdr_bp_id_str']
-                negative.loc['original_cdr_resnames'] = acceptor_row['cdr_resnames']
-                negative.loc['original_cdr_pdb_id'] = acceptor_row['cdr_pdb_id']
+        logging.info(f"Progress: {len(negatives_df)/k:.1%}. "
+                     f"Generated {len(negatives_df)} negatives so far.")
 
-                negative.loc['cdr_bp_id_str'] = donor_row['cdr_bp_id_str']
-                negative.loc['cdr_resnames'] = donor_row['cdr_resnames']
-                negative.loc['cdr_pdb_id'] = donor_row['cdr_pdb_id']
+    logging.info(f"Generated {len(combined_df) - len(positives_df)} negative samples. Required "
+                 f"{k} negatives. Will trim "
+                 f"{len(combined_df) - len(positives_df) - k} rows from the negatives.")
+    combined_df = combined_df.iloc[:len(positives_df) + k, :]
 
-                negative.loc['binding_observed'] = 0
-
-                combined_df = combined_df.append(negative)
-
-                num_negatives_produced += 1
-
-        num_tried += 1
-
-        if num_negatives_produced and num_negatives_produced % 100 == 0:
-            logging.info(f"Produced {num_negatives_produced} negatives "
-                         f"from {num_tried} attempts. Latest was \n{negative}")
-        if num_tried and num_tried % 1000 == 0:
-            logging.info(f"Attempted {num_tried} pairs. "
-                         f"Generated {num_negatives_produced} negatives.")
+    good_cols = [col for col in combined_df.columns if not col.endswith('donor')]
+    combined_df = combined_df[good_cols]
 
     return combined_df
 
