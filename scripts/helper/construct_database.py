@@ -307,6 +307,9 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
         negatives_df = combined_df[combined_df['binding_observed'] == 0]
         negatives_df.to_csv(".tmp.negatives_df.csv")
 
+        logging.info(f"Progress: {len(negatives_df)/k:.1%}. "
+                     f"Generated {len(negatives_df)} negatives so far.")
+
     logging.info(f"Generated {len(combined_df) - len(positives_df)} negative samples. Required "
                  f"{k} negatives. Will trim "
                  f"{len(combined_df) - len(positives_df) - k} rows from the negatives.")
