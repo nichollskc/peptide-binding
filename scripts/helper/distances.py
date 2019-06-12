@@ -23,14 +23,19 @@ def calculate_alignment_scores(column_1, column_2):
     row at column_2."""
     logging.info(f"Computing aligments between two columns of length "
                  f"{len(column_1)} and {len(column_2)}")
-    column_1_values = " ".join(column_1)
-    column_2_values = " ".join(column_2)
-    num_procs = 64
-    full_cmd = f"parallel -k -j{num_procs} --link scripts/helper/run_seq_align.sh " \
-               f"::: {column_1_values} ::: {column_2_values}"
+    lines = ['_'.join(pair) + '\n' for pair in zip(column_1, column_2)]
+    with open(".tmp.sequences.txt", "w") as f:
+        f.writelines(lines)
+    full_cmd = "parallel -j64 -m -k scripts/helper/run_seq_align_batch.sh :::: .tmp.sequences.txt"
     logging.debug(f"Full command is {full_cmd}")
     alignments = subprocess.run(full_cmd.split(" "),
                                 capture_output=True)
+    if alignments.stderr:
+        logging.warning(f"Command to calculate alignment scores produced error output:"
+                        f"\n{alignments.stderr.decode('utf-8')}")
+    output = alignments.stdout.decode('utf-8')
+    logging.info(f"Alignments computed. Size of output is {len(output)}. Head of output is:\n"
+                 f"{output:.100s}")
     logging.debug(f"Alignments computed. Output is:\n{alignments.stdout.decode('utf-8')}")
     scores = list(map(int, alignments.stdout.decode("utf-8").strip().split("\n")))
     logging.info(f"Alignments decoded")

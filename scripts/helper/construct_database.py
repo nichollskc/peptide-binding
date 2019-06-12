@@ -147,8 +147,12 @@ def remove_duplicate_rows(data_frame, columns):
         pandas.DataFrame: data frame which is a copy of the original but with
             duplicated rows removed.
     """
+    logging.info(f"Removing duplicates from dataframe with {len(data_frame)} rows, "
+                 f"based on the columns {columns}.")
     row_is_duplicate = data_frame.duplicated(columns, keep='first')
     no_duplicates = data_frame[~ row_is_duplicate]
+    logging.info(f"After removing duplicates based on columns {columns}, data frame "
+                 f"now has {len(no_duplicates)} rows.")
 
     return no_duplicates
 
@@ -287,7 +291,10 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
     while len(combined_df) < k + len(positives_df):
         # Generate proposals which might be negative - by shuffling two versions of
         #   the positives data frame
-        proposals_df = generate_proposal_negatives(positives_df, 2 * k)
+        # Usually requires about 3 * k attempts to get k negatives, but we should limit to
+        #   batches of 20000 to avoid issues with the command line tools
+        num_proposals = min(3 * k, 20000)
+        proposals_df = generate_proposal_negatives(positives_df, num_proposals)
 
         # Combine the positives and proposed negatives, and remove duplicate values
         combined_df = pd.concat([combined_df, proposals_df], sort=False).reset_index(drop=True)
@@ -296,6 +303,13 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
 
         combined_df = remove_invalid_negatives(combined_df)
 
+        # Save the data frame as a checkpoint
+        negatives_df = combined_df[combined_df['binding_observed'] == 0]
+        negatives_df.to_csv(".tmp.negatives_df.csv")
+
+    logging.info(f"Generated {len(combined_df) - len(positives_df)} negative samples. Required "
+                 f"{k} negatives. Will trim "
+                 f"{len(combined_df) - len(positives_df) - k} rows from the negatives.")
     combined_df = combined_df.iloc[:len(positives_df) + k, :]
 
     good_cols = [col for col in combined_df.columns if not col.endswith('donor')]
