@@ -21,6 +21,7 @@ install:
   - conda env create -f environment.yml
   # Sacred can't be installed with conda, so install it *after* the conda install
   - pip install sacred
+  - python setup.py install
   - git submodule update --init --recursive
   - cd seq-align && make
   # Return to original directory
