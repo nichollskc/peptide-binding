@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""setup.py file for the rational design python modules"""
 
 from distutils.core import setup
 

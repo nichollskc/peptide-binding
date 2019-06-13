@@ -1,11 +1,33 @@
 """Trains models using processed datasets, and evaluates their performance."""
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 import sklearn.metrics as metrics
+
+
+MODELS_DIR = "models/"
+
+
+def create_experiment_save_dir(name):
+    """Finds a unique folder to save artifacts for a given experiment."""
+    filename = os.path.join(MODELS_DIR, name)
+    i = 1
+    unique_dir = "{}-{}".format(filename, i)
+    while os.path.exists(unique_dir):
+        i += 1
+        unique_dir = "{}-{}".format(filename, i)
+
+    try:
+        os.makedirs(unique_dir)
+    except FileExistsError:
+        # directory already exists
+        pass
+    return unique_dir
 
 
 def load_data(representation):
@@ -29,35 +51,67 @@ def load_data(representation):
 def train_random_forest(data, **kwargs):
     """Trains a random forest on the training data in the data object, passing any
     extra arguments to the random forest classifier."""
+    # The default value is going to update soon to 100, so we might as well use
+    #   this as our default.
+    if 'n_estimators' not in kwargs:
+        kwargs['n_estimators'] = 100
+
     rf_model = RandomForestClassifier(**kwargs)
     rf_model.fit(data['X_train'], data['y_train'])
     return rf_model
 
 
-def grid_search_random_forest(data):
+def random_search_random_forest(data, param_dist, num_folds=10, num_param_sets=10):
     """Performs a grid search to find the optimal hyperparameters for a random forest
     using the training data in the data object. Uses cross-validation on all the training
     data."""
-    rf_params = {
-        'n_estimators': [100, 200],            # Number of trees in the forest
-        'max_features': [None, 'sqrt', 'log2'],   # Methods to choose number of features
-        'max_depth':    [2, 30, 60]       # Maximum depth of trees
-    }
+    rf_model = RandomForestClassifier()
+    search = RandomizedSearchCV(estimator=rf_model,
+                                param_distributions=param_dist,
+                                cv=num_folds,
+                                n_iter=num_param_sets)
+    search.fit(data['X_train'], data['y_train'])
+    return search
 
-    rf_model = RandomForestClassifier(random_state=115)
-    grid_search = GridSearchCV(estimator=rf_model, param_grid=rf_params, cv=10)
+
+def summarise_search(search, num_results=10, full_print=False):
+    """Print the results from the top num_results estimators. If full_print, then
+    also print out all the results from the search."""
+    results = search.cv_results_
+    ranked_indices = results['rank_test_score'] - 1
+    total_runs = len(ranked_indices)
+
+    print(f"Total runs: {total_runs}")
+
+    if full_print:
+        print(results)
+
+    for i in range(min(num_results, total_runs)):
+        index = ranked_indices[i]
+        print(f"Ranked {i}")
+        print(f"Time to fit: {results['mean_fit_time'][index]:.2f}s")
+        print(f"CV accuracy score: {results['mean_test_score'][index]:.4f}")
+        print(f"Parameters: {results['params'][index]}")
+
+
+def grid_search_random_forest(data, param_grid, num_folds=10):
+    """Performs a grid search to find the optimal hyperparameters for a random forest
+    using the training data in the data object. Uses cross-validation on all the training
+    data."""
+    rf_model = RandomForestClassifier()
+    grid_search = GridSearchCV(estimator=rf_model, param_grid=param_grid, cv=num_folds)
     grid_search.fit(data['X_train'], data['y_train'])
     return grid_search
 
 
-def evaluate_model(model, X_true, y_true):
+def evaluate_model(model, X_true, y_true, savedir):
     """Uses the model to predict for the given data, and evaluates the model
     according to a number of metrics, returning these in a dictionary."""
     y_pred = model.predict(X_true)
     y_probs = model.predict_proba(X_true)[:, 1]
 
-    precision, recall, thresholds_pr = metrics.precision_recall_curve(y_true, y_probs)
-    fpr, tpr, thresholds_roc = metrics.roc_curve(y_true, y_probs)
+    precision, recall, _thresholds_pr = metrics.precision_recall_curve(y_true, y_probs)
+    fpr, tpr, _thresholds_roc = metrics.roc_curve(y_true, y_probs)
     model_metrics = {
         'accuracy': metrics.accuracy_score(y_true, y_pred),
         'f1_score': metrics.f1_score(y_true, y_pred),
@@ -65,14 +119,22 @@ def evaluate_model(model, X_true, y_true):
         'recall': metrics.recall_score(y_true, y_pred),
         'cross_entropy': metrics.log_loss(y_true, y_pred),
         'average_precision_score': metrics.average_precision_score(y_true, y_pred),
-        'confusion_matrix': metrics.confusion_matrix(y_true, y_pred),
-
-        'binding_probs': stats.describe(y_probs),
-        'binding_probs_positive': stats.describe(y_probs[y_true == 1]),
-        'binding_probs_negative': stats.describe(y_probs[y_true == 0]),
         'pr_auc_score': metrics.auc(recall, precision),
         'roc_auc_score': metrics.auc(fpr, tpr),
         'brier_score_loss': metrics.brier_score_loss(y_true, y_probs),
+    }
+
+    longer_model_metrics = {
+        'confusion_matrix': metrics.confusion_matrix(y_true, y_pred).tolist(),
+        'binding_probs': stats.describe(y_probs)._asdict(),
+        'binding_probs_positive': stats.describe(y_probs[y_true == 1])._asdict(),
+        'binding_probs_negative': stats.describe(y_probs[y_true == 0])._asdict(),
+    }
+
+    plot_filenames = {
+        'pred_probs': os.path.join(savedir, "pred_probs.png"),
+        'roc_curve': os.path.join(savedir, "roc_curve.png"),
+        'pr_curve': os.path.join(savedir, "pr_curve.png")
     }
 
     plt.clf()
@@ -80,7 +142,7 @@ def evaluate_model(model, X_true, y_true):
     sns.distplot(y_probs[y_true == 0], label="Negatives", color=sns.color_palette('colorblind')[3])
     plt.title("Prediction probabilities by class")
     plt.legend()
-    plt.show()
+    plt.savefig(plot_filenames['pred_probs'])
 
     plt.clf()
     plt.plot(fpr, tpr)
@@ -88,7 +150,7 @@ def evaluate_model(model, X_true, y_true):
     plt.xlabel("False positive rate")
     plt.ylabel("True positive rate")
     plt.legend()
-    plt.show()
+    plt.savefig(plot_filenames['roc_curve'])
 
     plt.clf()
     plt.plot(recall, precision)
@@ -96,14 +158,6 @@ def evaluate_model(model, X_true, y_true):
     plt.xlabel("Recall")
     plt.ylabel("Precision")
     plt.legend()
-    plt.show()
+    plt.savefig(plot_filenames['pr_curve'])
 
-    return model_metrics
-
-
-def run(representation):
-    """Runs model training and evaluation for the given type of data representation."""
-    data = load_data(representation)
-    grid_search = grid_search_random_forest(data)
-    classifier = grid_search.best_estimator_
-    model_metrics = evaluate_model(classifier, data['X_val'], data['y_val'])
+    return model_metrics, longer_model_metrics, plot_filenames
