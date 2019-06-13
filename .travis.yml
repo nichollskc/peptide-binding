@@ -19,6 +19,8 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   - conda env create -f environment.yml
+  # Sacred can't be installed with conda, so install it *after* the conda install
+  - pip install sacred
   - git submodule update --init --recursive
   - cd seq-align && make
   # Return to original directory
