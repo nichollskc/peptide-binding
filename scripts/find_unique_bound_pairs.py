@@ -1,12 +1,8 @@
 """Given a list of CDR-like fragments and the target fragments they interact with,
 removes duplicated pairs from the list."""
-# pylint: disable=wrong-import-position
 import argparse
 import logging
 import json
-import os
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 import scripts.helper.construct_database as con_dat
 import scripts.helper.log_utils as log_utils

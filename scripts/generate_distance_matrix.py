@@ -1,13 +1,7 @@
 """Only works with snakemake.
 Calculates distances between each pair of rows of the table."""
-# pylint: disable=wrong-import-position
-import os
-import sys
-
 import numpy as np
 import pandas as pd
-
-sys.path.append(os.environ.get('current_dir'))
 
 import scripts.helper.distances as distances
 

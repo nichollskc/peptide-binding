@@ -1,10 +1,6 @@
 """Finds all CDR-like fragments and the target fragments they interact with."""
-# pylint: disable=wrong-import-position
 import argparse
 import logging
-import os
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 import scripts.helper.construct_database as con_dat
 import scripts.helper.query_biopython as query_bp
