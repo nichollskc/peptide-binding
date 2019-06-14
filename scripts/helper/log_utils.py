@@ -10,11 +10,24 @@ verbosity_to_logging_level = {
 }
 
 
-def setup_logging(verbosity):
+def setup_logging(verbosity, logfile=None):
     """Initialises logging with custom formatting and a given verbosity level."""
     format_string = "%(asctime)s %(levelname)s | %(module)s - %(funcName)s: %(message)s"
     level = verbosity_to_logging_level[verbosity]
-    logging.basicConfig(level=level,
-                        format=format_string,
-                        datefmt='%Y-%m-%d %H:%M:%S')
-    logging.info(f"Set up logging with verbosity level {logging.getLevelName(level)}")
+
+    log_formatter = logging.Formatter(format_string)
+    root_logger = logging.getLogger()
+
+    root_logger.setLevel(level)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    root_logger.addHandler(console_handler)
+    logging.info(f"Set up logging to console with verbosity level {logging.getLevelName(level)}")
+
+    if logfile:
+        file_handler = logging.FileHandler(logfile)
+        file_handler.setFormatter(log_formatter)
+        root_logger.addHandler(file_handler)
+        logging.info(f"Set up logging to file {logfile} "
+                     f"with verbosity level {logging.getLevelName(level)}")

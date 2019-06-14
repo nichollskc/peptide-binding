@@ -101,9 +101,8 @@ rule find_unique_bound_pairs:
     output:
         bound_pairs='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
         fragment_lengths='processed/bound_pairs/fragmented/fragment_lengths.txt'
-    shell:
-        'python3 scripts/find_unique_bound_pairs.py {output.bound_pairs} {input.bound_pairs} '\
-        '--fragment_lengths_out {output.fragment_lengths} --verbosity 3 2>&1 | tee {log}'
+    script:
+        'scripts/snakemake_find_unique_bound_pairs.py'
 
 rule generate_simple_negatives:
     # Within each group, permute cdrs and targets to generate (assumed) negative
@@ -111,7 +110,7 @@ rule generate_simple_negatives:
     input:
         positives='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
     log:
-        'logs/generate_simple_negatives.log'
+        log='logs/generate_simple_negatives.log'
     output:
         combined='processed/bound_pairs_simple_negatives.csv'
     shell:
