@@ -1,5 +1,6 @@
 """Utils"""
 import logging
+import subprocess
 
 verbosity_to_logging_level = {
     0:  logging.CRITICAL,
@@ -31,3 +32,9 @@ def setup_logging(verbosity, logfile=None):
         root_logger.addHandler(file_handler)
         logging.info(f"Set up logging to file {logfile} "
                      f"with verbosity level {logging.getLevelName(level)}")
+
+
+def log_git_info(gitlogfile):
+    """Print the git information necessary to identify the code used. Save to a file."""
+    cmd = f"(set -x; git log -n 1; git status --untracked-files=no; git diff) > {gitlogfile}"
+    subprocess.run(cmd, shell=True)
