@@ -33,6 +33,10 @@ args = parser.parse_args()
 
 log_utils.setup_logging(args.verbosity)
 
+gitlogfile = "logs/git/generate_simple_negatives.gitlog"
+logging.info(f"Saving git information to file {gitlogfile}")
+log_utils.log_git_info(gitlogfile)
+
 logging.info(f"Reading in table of positive samples from '{args.positive_samples}'.")
 
 positives_df = pd.read_csv(args.positive_samples, header=0)
