@@ -302,7 +302,7 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
         #   the positives data frame
         # Usually requires about 3 * k attempts to get k negatives, but we should limit to
         #   batches of 20000 to avoid issues with the command line tools
-        num_proposals = min(3 * k, 500000)
+        num_proposals = min(3 * k, 1000000)
         logging.info("Generating new proposals")
         proposals_df = generate_proposal_negatives(positives_df, num_proposals)
 
@@ -334,11 +334,16 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
         logging.info(f"Progress: {num_negatives_produced/k:.2%}. "
                      f"Generated {num_negatives_produced} negatives so far.")
 
-        if num_rounds % 5 == 0:
+        if num_rounds % 10 == 0:
+            filename = f".tmp.negatives_df_{num_negatives_produced}.csv"
+            logging.info(f"Saving data frame so far to file {filename}: "
+                         f"concatenating {len(negatives_dfs_arr)} data frames.")
             # Save the data frame as a checkpoint
-            combined_df = pd.concat([positives_df] + negatives_dfs_arr, sort=False).reset_index(
+            combined_df = pd.concat(negatives_dfs_arr, sort=False).reset_index(
                 drop=True)
-            combined_df.to_csv(f".tmp.combined_df_{num_negatives_produced}.csv")
+            logging.info(f"Saving data frame so far to file {filename}: saving to file.")
+            combined_df.to_csv(filename)
+            logging.info("Saved to file.")
 
         num_rounds += 1
 
