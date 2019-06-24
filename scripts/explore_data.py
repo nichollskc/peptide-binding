@@ -2,19 +2,22 @@
 
 import json
 # import os
-# import random
+import random
 
 import numpy as np
 import matplotlib.pyplot as plt
-# import seaborn as sns
+import seaborn as sns
 #
 # import construct_database as con_dat
+import scripts.helper.distances as distances
 
 
-def save_plot(filename, folder="../plots/"):
+def save_plot(filename, folder="plots/"):
     """Saves plot to a file in the given folder."""
     full_filename = folder + filename
+    plt.tight_layout()
     plt.savefig(full_filename, bbox_inches='tight', dpi=300)
+
 
 #
 # def investigate_interaction_distributions_single(pdb_id, fragment_length):
@@ -235,6 +238,55 @@ def explore_observation_count_threshold(thresholds):
               str(threshold) +
               " or fewer CDR fragments: " +
               str(len(below_threshold[0])))
+
+
+def calculate_alignment_scores(data_frame, index_1, index_2):
+    """Find the alignment scores between CDRs and between targets in the rows
+    given by index_1 and index_2. I.e. return alignment(row_1['cdr'], row_2['cdr'])
+    and alignment(row_1['target'], row_2['target'])."""
+    row1 = data_frame.loc[index_1, :]
+    row2 = data_frame.loc[index_2, :]
+
+    cdr_score = distances.calculate_alignment_score(row1['cdr_resnames'],
+                                                    row2['cdr_resnames'])
+    target_score = distances.calculate_alignment_score(row1['target_resnames'],
+                                                       row2['target_resnames'])
+
+    return cdr_score, target_score
+
+
+def explore_alignment_scores(bound_pairs_df, k=10):
+    """Explore distribution of alignment scores between rows of the data frame.
+    Look at alignment scores just between CDRs, just between targets and combined."""
+    donors = random.sample(list(bound_pairs_df.index), k)
+    acceptors = random.sample(list(bound_pairs_df.index), k)
+
+    similarities = []
+    cdr_similarities = []
+    target_similarities = []
+    for donor_index, acceptor_index in zip(donors, acceptors):
+        cdr_score, target_score = calculate_alignment_scores(bound_pairs_df,
+                                                             donor_index,
+                                                             acceptor_index)
+
+        similarity = cdr_score + target_score
+        similarities.append(similarity)
+        cdr_similarities.append(cdr_score)
+        target_similarities.append(target_score)
+
+    plt.clf()
+    unused_fig, ax = plt.subplots(2, 1)
+
+    sns.distplot(similarities, label="sum", ax=ax[0])
+    sns.distplot(cdr_similarities, label="cdr", ax=ax[1])
+    sns.distplot(target_similarities, label="target", ax=ax[1])
+
+    ax[0].set_title("Sum of CDR alignment and target alignment")
+    ax[1].set_title("Individual sequence alignments")
+    ax[1].legend()
+
+    save_plot(f"explore_alignments_{k}.png")
+    plt.show()
 
 
 if __name__ == "__main__":

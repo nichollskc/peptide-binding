@@ -6,7 +6,7 @@ import unittest
 
 import Bio.PDB
 
-import scripts.query_biopython as query_bp
+import scripts.helper.query_biopython as query_bp
 
 
 class Test(unittest.TestCase):

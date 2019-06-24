@@ -74,6 +74,7 @@ disable=print-statement,
         bad-inline-option,
         locally-disabled,
         file-ignored,
+        logging-fstring-interpolation,
         suppressed-message,
         useless-suppression,
         deprecated-pragma,
@@ -189,7 +190,7 @@ never-returning-functions=sys.exit
 
 # Format style used to check logging format string. `old` means using %
 # formatting, while `new` is for `{}` formatting.
-logging-format-style=old
+logging-format-style=new
 
 # Logging modules to check that the string format arguments are in logging
 # function parameter format.
