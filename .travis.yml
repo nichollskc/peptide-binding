@@ -10,11 +10,6 @@ branches:
 
 install:
   - sudo apt-get update
-  # Install hammock, first installing the tool p7zip to unpack the zipped file
-  - sudo apt-get install p7zip-full
-  - wget https://github.com/krejciadam/hammock/releases/download/v1.2.0/Hammock_v_1.2.0.7z
-  - ls -l Hammock_v_1.2.0.7z
-  - 7z x Hammock_v_1.2.0.7z
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
@@ -29,6 +24,10 @@ install:
   - cd seq-align && make
   # Return to original directory after install
   - cd -
+  # Install hammock, first installing the tool p7zip to unpack the zipped file
+  - sudo apt-get install p7zip-full
+  - wget https://github.com/krejciadam/hammock/releases/download/v1.2.0/Hammock_v_1.2.0.7z
+  - 7z x Hammock_v_1.2.0.7z
 
 script:
   - source activate rationaldesign
