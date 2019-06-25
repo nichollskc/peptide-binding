@@ -26,7 +26,7 @@ install:
   - cd -
   # Install hammock, first installing the tool p7zip to unpack the zipped file
   - wget https://sourceforge.net/projects/p7zip/files/p7zip/9.20.1/p7zip_9.20.1_x86_linux_bin.tar.bz2/download -O p7zip_9.20.1_x86_linux_bin.tar.bz2
-  - tar -jxf p7zip_9.20.1_x86_linux_bin.tar.bz2
+  - tar -jxvf p7zip_9.20.1_x86_linux_bin.tar.bz2
   - wget https://github.com/krejciadam/hammock/releases/download/v1.2.0/Hammock_v_1.2.0.7z
   - p7zip_9.20.1/bin/7z x Hammock_v_1.2.0.7z
 
