@@ -11,7 +11,7 @@ branches:
 install:
   - sudo apt-get update
   # Install hammock, first installing the tool p7zip to unpack the zipped file
-  - apt-get install p7zip-full
+  - sudo apt-get install p7zip-full
   - wget https://github.com/krejciadam/hammock/releases/download/v1.2.0/Hammock_v_1.2.0.7z
   - ls -l Hammock_v_1.2.0.7z
   - 7z x Hammock_v_1.2.0.7z
