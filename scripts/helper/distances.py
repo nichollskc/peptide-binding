@@ -67,7 +67,7 @@ def calculate_distance_matrix(df, columns):
     num_rows = len(df)
     distance_matrix = np.zeros((num_rows, num_rows))
 
-    x_inds, y_inds = np.triu_indices(len(df), k=1)
+    x_inds, y_inds = np.triu_indices(len(df))
 
     for c in columns:
         distance_matrix[x_inds, y_inds] += calculate_alignment_scores(df[c].iloc[x_inds],
