@@ -57,8 +57,11 @@ def calculate_similarity_score_alignment(row1, row2):
 
 
 def calculate_distance_matrix(df, columns):
-    """Given a data frame containing columns 'cdr_resnames' and 'target_resnames',
-    constructs a distance matrix between each pair of rows."""
+    """Given a data frame, constructs a distance matrix between each pair of rows
+    where the distance is the sum of the alignment scores between rows for each
+    column in the list columns.
+    E.g. if columns = ['cdr_resnames', 'target_resnames'] then the distance
+    will be alignment(row_1_cdr, row_2_cdr) + alignment(row_1_target, row_2_target)."""
 
     # Initialise empty distance matrix
     num_rows = len(df)

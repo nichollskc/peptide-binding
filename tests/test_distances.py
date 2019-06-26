@@ -77,7 +77,8 @@ class Test(unittest.TestCase):
     }
 
     def test_short_calculate_distance_matrix(self):
-        dist_mat = distances.calculate_distance_matrix(pd.DataFrame(self.df_dict))
+        dist_mat = distances.calculate_distance_matrix(pd.DataFrame(self.df_dict),
+                                                       ['cdr_resnames', 'target_resnames'])
 
         self.assertEqual(dist_mat.shape, (9, 9))
 
