@@ -125,3 +125,34 @@ def cluster_sequences(bound_pairs_df):
                                                  on='target_resnames',
                                                  how='left')
     return with_both_clusters
+
+
+def split_dataset_clustered(data_frame, group_proportions, seed=42):
+    """Splits the rows of a data frame into groups according to the group
+    proportions, keeping clusters (based on CDR sequence similarity) together.
+    Group proportions should be a list e.g. [60, 20, 20].
+    Within each group, clusters will be randomly ordered and randomly shuffled but
+    will be blocks in the data. This means that splitting a group into k folds
+    without shuffling result in clusters (mostly) being present in just a single fold."""
+    #   e.g. [60, 20, 20] -> [0.6, 0.2, 0.2] -> [0.6, 0.6 + 0.2] = [0.6, 0.8]
+    fractions = np.cumsum([group_proportions])[:-1] / sum(group_proportions)
+
+    partitions = []
+
+    df_with_clusters = cluster_sequences(data_frame)
+    grouped = [df.sample(frac=1, random_state=seed)
+               for _, df
+               in df_with_clusters.groupby('cdr_cluster_id')]
+    random.shuffle(grouped)
+
+    logging.info(f"Intended fractions are {fractions}")
+    counts = list(map(int, (fractions * len(grouped))))
+    logging.info(f"Intended (cumulative) cluster counts per group are {counts}")
+
+    index_lists = np.split(range(len(grouped)), counts)
+
+    for index_list in index_lists:
+        partition = pd.concat([grouped[i] for i in index_list])
+        partitions.append(partition)
+
+    return partitions
