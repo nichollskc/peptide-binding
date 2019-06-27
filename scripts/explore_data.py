@@ -3,17 +3,22 @@
 import json
 # import os
 import random
+import subprocess
 
+from Bio import SeqIO
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
+from sklearn.metrics import adjusted_rand_score
 #
 # import construct_database as con_dat
 import scripts.helper.distances as distances
+import scripts.cluster_sequences as clstr
 
 
 def save_plot(filename, folder="plots/"):
-    """Saves plot to a file in the given folder."""
+    """Save a plot to the plots folder."""
     full_filename = folder + filename
     plt.tight_layout()
     plt.savefig(full_filename, bbox_inches='tight', dpi=300)
@@ -255,6 +260,34 @@ def calculate_alignment_scores(data_frame, index_1, index_2):
     return cdr_score, target_score
 
 
+def plot_alignment_scores(combined, cdr_similarities, target_similarities, k):
+    """Plot the similarity scores in density plots and cumulative frequency
+    graphs and save."""
+    plt.clf()
+    unused_fig, ax = plt.subplots(2, 1)
+
+    bins = np.arange(combined.min() - 1.5, combined.max() + 1.5)
+
+    sns.distplot(combined, label="sum", ax=ax[0], bins=bins)
+    sns.distplot(cdr_similarities, label="cdr", ax=ax[1], bins=bins)
+    sns.distplot(target_similarities, label="target", ax=ax[1], bins=bins)
+
+    ax[0].set_title("Sum of CDR alignment and target alignment")
+    ax[1].set_title("Individual sequence alignments")
+    ax[1].legend()
+
+    save_plot(f"explore_alignments_{k}.png")
+
+    plt.clf()
+
+    sorted_scores = np.sort(combined)
+    plt.step(sorted_scores, np.arange(sorted_scores.size)/sorted_scores.size)
+    plt.title("Sum of CDR alignment and target alignment")
+    plt.xlabel("Sum of alignments")
+    plt.ylabel("Cumulative frequency")
+    save_plot(f"explore_alignments_cum_{k}.png")
+
+
 def explore_alignment_scores(bound_pairs_df, k=10):
     """Explore distribution of alignment scores between rows of the data frame.
     Look at alignment scores just between CDRs, just between targets and combined."""
@@ -274,21 +307,72 @@ def explore_alignment_scores(bound_pairs_df, k=10):
         cdr_similarities.append(cdr_score)
         target_similarities.append(target_score)
 
-    plt.clf()
-    unused_fig, ax = plt.subplots(2, 1)
+    plot_alignment_scores(similarities, cdr_similarities, target_similarities, k)
 
-    sns.distplot(similarities, label="sum", ax=ax[0])
-    sns.distplot(cdr_similarities, label="cdr", ax=ax[1])
-    sns.distplot(target_similarities, label="target", ax=ax[1])
+    results = {'combined_similarities': similarities,
+               'cdr_similarities': cdr_similarities,
+               'target_similarities': target_similarities}
+    return results
 
-    ax[0].set_title("Sum of CDR alignment and target alignment")
-    ax[1].set_title("Individual sequence alignments")
-    ax[1].legend()
 
-    save_plot(f"explore_alignments_{k}.png")
+def cluster_multiple_cdhit(csv_filename, repeats=100):
+    """Cluster using cd-hit multiple times and return a data frame describing
+    which cluster each sequence was assigned to for each run, and the adjusted
+    rand scores between the different runs of the clustering."""
+    cdr_sequence_records, _ = clstr.generate_sequence_records(csv_filename)
+    clusters_dicts = []
+    for i in range(repeats):
+        random.shuffle(cdr_sequence_records)
+        temp_fasta_file = "shuffled.fasta"
+        SeqIO.write(cdr_sequence_records, temp_fasta_file, "fasta")
+        temp_cluster_output = "cluster_output"
+        full_cmd = "/home/kcn25/tools/cd-hit-v4.8.1-2019-0228/cd-hit" \
+                   " -i {} -o {} -c 0.4 -n 2 -M 16000" \
+                   " -d 0 -T 8 -l 3".format(temp_fasta_file,
+                                            temp_cluster_output)
+        subprocess.run(full_cmd.split(" "))
+        clusters_dict = clstr.read_cdhit_clusters(temp_cluster_output + ".clstr")
+        clusters_dicts.append(clusters_dict)
+
+    cluster_df = pd.DataFrame(clusters_dicts, dtype=int)
+
+    ar_scores = []
+    for i in cluster_df.index:
+        for j in range(i):
+            ar_scores.append(adjusted_rand_score(cluster_df.loc[i, :],
+                                                 cluster_df.loc[j, :]))
+
+    return cluster_df, ar_scores
+
+
+def find_consensus_matrix(cluster_df):
+    """Given a dataframe describing results of multiple clustering runs, determine
+    the consensus matrix."""
+    consensus_df = pd.DataFrame(np.zeros([cluster_df.shape[1],
+                                          cluster_df.shape[1]],
+                                         np.int32),
+                                index=cluster_df.columns,
+                                columns=cluster_df.columns)
+    for cluster_ind in cluster_df.index:
+        for row in consensus_df.index:
+            for col in consensus_df:
+                if cluster_df.loc[cluster_ind, row] == cluster_df.loc[cluster_ind, col]:
+                    consensus_df.loc[row, col] += 1
+    return consensus_df
+
+
+def investigate_robustness_cdhit(csv_filename, repeats):
+    """Investigate how robust the clustering achieved by cdhit is by repeating
+    the clustering *repeats* times and plotting the adjusted rand scores and
+    the consensus matrix."""
+    cluster_df, ar_scores = cluster_multiple_cdhit(csv_filename, repeats)
+    columns = random.sample(list(cluster_df.columns), k=100)
+    consensus = find_consensus_matrix(cluster_df.loc[:, columns])
+
+    sns.distplot(ar_scores)
+    plt.savefig("cluster_ars.png")
     plt.show()
 
-
-if __name__ == "__main__":
-    # plot_interaction_distributions_many(1000, 4)
-    explore_observation_count_threshold(thresholds=[2, 3, 5, 10, 20, 50, 100])
+    sns.clustermap(consensus)
+    plt.savefig("consensus.png")
+    plt.show()
