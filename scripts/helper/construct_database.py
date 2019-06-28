@@ -214,6 +214,9 @@ def generate_proposal_negatives(data_frame, k):
 
     proposals_df['binding_observed'] = 0
 
+    proposals_df['paired'] = list(zip(proposals_df['cdr_resnames'],
+                                      proposals_df['target_resnames']))
+
     logging.info(f"Updated column values for these proposals")
 
     return proposals_df
@@ -280,7 +283,13 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
     positives_df = positives_df.drop(columns='pdb_id')
     positives_df['binding_observed'] = 1
     positives_df['similarity_score'] = np.nan
-    combined_df = positives_df.copy()
+
+    considered_pairs = {x for x in zip(positives_df['cdr_resnames'],
+                                       positives_df['target_resnames'])}
+
+    negatives_dfs_arr = []
+    num_negatives_produced = 0
+    num_rounds = 0
 
     if k is None:
         k = len(bound_pairs_df.index)
@@ -288,31 +297,63 @@ def generate_negatives_alignment_threshold(bound_pairs_df, k=None, seed=42):
     logging.info(f"Generating {k} negative examples for dataset "
                  f"containing {len(bound_pairs_df.index)} positive examples.")
 
-    while len(combined_df) < k + len(positives_df):
+    while num_negatives_produced < k:
         # Generate proposals which might be negative - by shuffling two versions of
         #   the positives data frame
         # Usually requires about 3 * k attempts to get k negatives, but we should limit to
         #   batches of 20000 to avoid issues with the command line tools
-        num_proposals = min(3 * k, 20000)
+        num_proposals = min(3 * k, 1000000)
+        logging.info("Generating new proposals")
         proposals_df = generate_proposal_negatives(positives_df, num_proposals)
 
-        # Combine the positives and proposed negatives, and remove duplicate values
-        combined_df = pd.concat([combined_df, proposals_df], sort=False).reset_index(drop=True)
-        combined_df = remove_duplicate_rows(combined_df,
-                                            ['cdr_resnames', 'target_resnames'])
+        # Remove rows that are duplicated in the proposals
+        logging.info("Removing duplicated proposals")
+        proposals_df = remove_duplicate_rows(proposals_df,
+                                             ['cdr_resnames', 'target_resnames'])
 
-        combined_df = remove_invalid_negatives(combined_df)
+        # Remove proposals that have already been considered, or are existing rows in the
+        #   postives data frame
+        logging.info(f"Removing proposals already considered. "
+                     f"Starting with {len(proposals_df)} rows.")
+        proposals_df = proposals_df[~ proposals_df['paired'].isin(considered_pairs)]
+        logging.info(f"After removing proposals already considered, there are "
+                     f"{len(proposals_df)} rows.")
 
-        # Save the data frame as a checkpoint
-        negatives_df = combined_df[combined_df['binding_observed'] == 0]
-        negatives_df.to_csv(".tmp.negatives_df.csv")
+        # Add these proposals to considered pairs so we don't check them again later
+        logging.info(f"Adding these {len(proposals_df)} proposals to considered list, "
+                     f"to allow checking in next round.")
+        considered_pairs.update(proposals_df['paired'])
 
-        logging.info(f"Progress: {len(negatives_df)/k:.1%}. "
-                     f"Generated {len(negatives_df)} negatives so far.")
+        # Perform alignment for these proposals and check they are reasonable negatives
+        logging.info("Removing invalid negatives based on alignment")
+        negatives_df = remove_invalid_negatives(proposals_df)
 
-    logging.info(f"Generated {len(combined_df) - len(positives_df)} negative samples. Required "
+        num_negatives_produced += len(negatives_df)
+        negatives_dfs_arr.append(negatives_df)
+
+        logging.info(f"Progress: {num_negatives_produced/k:.2%}. "
+                     f"Generated {num_negatives_produced} negatives so far.")
+
+        if num_rounds % 10 == 0:
+            filename = f".tmp.negatives_df_{num_negatives_produced}.csv"
+            logging.info(f"Saving data frame so far to file {filename}: "
+                         f"concatenating {len(negatives_dfs_arr)} data frames.")
+            # Save the data frame as a checkpoint
+            combined_df = pd.concat(negatives_dfs_arr, sort=False).reset_index(
+                drop=True)
+            logging.info(f"Saving data frame so far to file {filename}: saving to file.")
+            combined_df.to_csv(filename)
+            logging.info("Saved to file.")
+
+        num_rounds += 1
+
+    logging.info(f"Concatenating all negatives with the positives into a new data frame. "
+                 f"There are {len(negatives_dfs_arr)} data frames containing negatives.")
+    combined_df = pd.concat([positives_df] + negatives_dfs_arr, sort=False).reset_index(drop=True)
+
+    logging.info(f"Generated {num_negatives_produced} negative samples. Required "
                  f"{k} negatives. Will trim "
-                 f"{len(combined_df) - len(positives_df) - k} rows from the negatives.")
+                 f"{num_negatives_produced - k} rows from the negatives.")
     combined_df = combined_df.iloc[:len(positives_df) + k, :]
 
     good_cols = [col for col in combined_df.columns if not col.endswith('donor')]
@@ -326,7 +367,7 @@ def split_dataset_random(data_frame, group_proportions, seed=42):
     proportions. Group proportions should be a list e.g. [60, 20, 20]."""
     # np.split requires a list of cummulative fractions for the groups
     #   e.g. [60, 20, 20] -> [0.6, 0.2, 0.2] -> [0.6, 0.6 + 0.2] = [0.6, 0.8]
-    fractions = np.cumsum([group_proportions])[:-1] / 100
+    fractions = np.cumsum([group_proportions])[:-1] / sum(group_proportions)
 
     logging.info(f"Intended fractions are {fractions}")
     counts = list(map(int, (fractions * len(data_frame))))

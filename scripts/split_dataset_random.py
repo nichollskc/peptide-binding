@@ -57,7 +57,7 @@ print(args)
 # Validate input
 assert len(label_filenames) == len(data_filenames), \
     "--label_filenames and --data_filenames must be comma-separated lists of the same length."
-assert len(label_filenames) == len(data_filenames), \
+assert len(label_filenames) == len(group_proportions), \
     "--label_filenames and --group_proportions must be comma-separated lists of the same length."
 assert sum(group_proportions) == 100, \
     "--group_proportions must be a comma-separated list of percentages that add up to 100."

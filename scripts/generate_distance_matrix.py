@@ -9,7 +9,9 @@ bound_pairs_df = pd.read_csv(snakemake.input.bound_pairs,
                              index_col=None,
                              header=0)
 
-distance_matrix = distances.calculate_distance_matrix(bound_pairs_df)
+distance_matrix = distances.calculate_distance_matrix(bound_pairs_df,
+                                                      columns=['cdr_resnames',
+                                                               'target_resnames'])
 
 # Output to file
 np.save(snakemake.output.distance_matrix, distance_matrix)
