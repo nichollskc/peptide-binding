@@ -56,22 +56,23 @@ def calculate_similarity_score_alignment(row1, row2):
     return similarity
 
 
-def calculate_distance_matrix(bound_pairs_df):
-    """Given a data frame containing columns 'cdr_resnames' and 'target_resnames',
-    constructs a distance matrix between each pair of rows."""
-    assert 'cdr_resnames' in bound_pairs_df.columns
-    assert 'target_resnames' in bound_pairs_df.columns
+def calculate_distance_matrix(data_frame, columns):
+    """Given a data frame, constructs a distance matrix between each pair of rows
+    where the distance is the sum of the alignment scores between rows for each
+    column in the list columns.
+    E.g. if columns = ['cdr_resnames', 'target_resnames'] then the distance
+    will be alignment(row_1_cdr, row_2_cdr) + alignment(row_1_target, row_2_target)."""
 
     # Initialise empty distance matrix
-    num_rows = len(bound_pairs_df)
+    num_rows = len(data_frame)
     distance_matrix = np.zeros((num_rows, num_rows))
 
-    for i in range(num_rows):
-        for j in range(i + 1):
-            distance = calculate_similarity_score_alignment(bound_pairs_df.iloc[i, :],
-                                                            bound_pairs_df.iloc[j, :])
+    x_inds, y_inds = np.triu_indices(len(data_frame))
 
-            distance_matrix[i][j] = distance
-            distance_matrix[j][i] = distance
+    for c in columns:
+        distance_matrix[x_inds, y_inds] += calculate_alignment_scores(data_frame[c].iloc[x_inds],
+                                                                      data_frame[c].iloc[y_inds])
+        distance_matrix[y_inds, x_inds] += calculate_alignment_scores(data_frame[c].iloc[x_inds],
+                                                                      data_frame[c].iloc[y_inds])
 
     return distance_matrix

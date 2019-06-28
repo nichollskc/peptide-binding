@@ -367,7 +367,7 @@ def split_dataset_random(data_frame, group_proportions, seed=42):
     proportions. Group proportions should be a list e.g. [60, 20, 20]."""
     # np.split requires a list of cummulative fractions for the groups
     #   e.g. [60, 20, 20] -> [0.6, 0.2, 0.2] -> [0.6, 0.6 + 0.2] = [0.6, 0.8]
-    fractions = np.cumsum([group_proportions])[:-1] / 100
+    fractions = np.cumsum([group_proportions])[:-1] / sum(group_proportions)
 
     logging.info(f"Intended fractions are {fractions}")
     counts = list(map(int, (fractions * len(data_frame))))

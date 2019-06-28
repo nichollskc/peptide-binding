@@ -19,9 +19,10 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   - conda env create -f environment.yml
+  # Install seq-align
   - git submodule update --init --recursive
   - cd seq-align && make
-  # Return to original directory
+  # Return to original directory after install
   - cd -
 
 script:
@@ -29,5 +30,5 @@ script:
   - coverage run -m unittest discover -v
   - coverage report -m
   # Test the snakemake workflow with qsub to check jobs are grouped properly
-  - KCN_CURRENT_DIR=$(pwd) snakemake --cluster "qsub -q s1 -V" --jobs 2 --dryrun --printshellcmds
+  - KCN_CURRENT_DIR=$(pwd) snakemake --cluster "qsub -q sl -V" --jobs 2 --dryrun --printshellcmds
   - KCN_CURRENT_DIR=$(pwd) snakemake --printshellcmds
