@@ -1,9 +1,12 @@
 """Performs data exploration of database."""
 
 import json
-# import os
 import random
 import subprocess
+# pylint: disable=wrong-import-position
+import os
+import sys
+sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 from Bio import SeqIO
 import numpy as np
