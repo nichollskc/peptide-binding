@@ -48,16 +48,25 @@ GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
 
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['bag_of_words', 'padded_meiler_onehot', 'product_bag_of_words']
-DATA_GROUPS = ['training', 'validation', 'test']
-DATA_GROUP_PROPORTIONS = [60, 20, 20]
+ALPHA_DATA_GROUPS = ['training', 'validation', 'test']
+ALPHA_DATA_GROUP_PROPORTIONS = [60, 20, 20]
+
+BETA_DATA_GROUPS = ['training_rand', 'validation_rand', 'test_rand',
+                    'training_clust', 'validation_clust', 'test_clust']
+BETA_DATA_GROUP_PROPORTIONS = [60, 20, 10, 10]
 
 rule all:
     input:
         expand('datasets/alpha/{data_group}/data_{data_type}.npy',
-               data_group=DATA_GROUPS,
+               data_group=ALPHA_DATA_GROUPS,
                data_type=DATA_TYPES),
         expand('datasets/alpha/{data_group}/labels.npy',
-               data_group=DATA_GROUPS)
+               data_group=ALPHA_DATA_GROUPS),
+        expand('datasets/beta/{data_group}/data_{data_type}.npy',
+               data_group=BETA_DATA_GROUPS,
+               data_type=DATA_TYPES),
+        expand('datasets/beta/{data_group}/labels.npy',
+               data_group=BETA_DATA_GROUPS)
 
 rule find_all_bound_pairs:
     input:
@@ -121,16 +130,36 @@ rule split_dataset_random:
     input:
         combined=rules.generate_simple_negatives.output.combined,
     params:
-        group_proportions=DATA_GROUP_PROPORTIONS
+        group_proportions=ALPHA_DATA_GROUP_PROPORTIONS
     log:
         'logs/split_dataset_random.log'
     output:
         data_filenames=expand('datasets/alpha/{data_group}/bound_pairs.csv',
-                              data_group=DATA_GROUPS),
+                              data_group=ALPHA_DATA_GROUPS),
         label_filenames=expand('datasets/alpha/{data_group}/labels.npy',
-                               data_group=DATA_GROUPS)
+                               data_group=ALPHA_DATA_GROUPS)
     shell:
         'python3 scripts/split_dataset_random.py --input {input.combined} '\
+        '--group_proportions {params.group_proportions} '\
+        '--data_filenames {output.data_filenames} '\
+        '--label_filenames {output.label_filenames} '\
+        '--seed 13 --verbosity 3 2>&1 | tee {log}'
+
+rule split_dataset_beta:
+    input:
+        combined=rules.generate_simple_negatives.output.combined,
+    params:
+        group_proportions=BETA_DATA_GROUP_PROPORTIONS
+    log:
+        'logs/split_dataset_beta.log'
+    output:
+        "processed/clusters/cdr_fragments.fasta",
+        data_filenames=expand('datasets/beta/{data_group}/bound_pairs.csv',
+                              data_group=BETA_DATA_GROUPS),
+        label_filenames=expand('datasets/beta/{data_group}/labels.npy',
+                               data_group=BETA_DATA_GROUPS)
+    shell:
+        'python3 scripts/split_dataset_clusters_random.py --input {input.combined} '\
         '--group_proportions {params.group_proportions} '\
         '--data_filenames {output.data_filenames} '\
         '--label_filenames {output.label_filenames} '\
@@ -140,14 +169,14 @@ rule generate_representations:
     # For each group, generate the representations for both positive and negative
     #   data, and also produce the labels file.
     input:
-         dataset='datasets/alpha/{data_group}/bound_pairs.csv',
+         dataset='datasets/{full_data_group}/bound_pairs.csv',
          fragment_lengths='processed/bound_pairs/fragmented/fragment_lengths.txt'
     params:
         representation='{representation}'
     log:
-        'logs/generate_representations/{data_group}_{representation}.log'
+        'logs/generate_representations/{full_data_group}_{representation}.log'
     output:
-         outfile='datasets/alpha/{data_group}/data_{representation}.npy'
+         outfile='datasets/{full_data_group}/data_{representation}.npy'
     shell:
          'python3 scripts/generate_representations.py --input {input.dataset} '\
          '--output_file {output.outfile} --representation {params.representation} '\

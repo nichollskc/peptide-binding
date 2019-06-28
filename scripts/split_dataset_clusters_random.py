@@ -33,29 +33,19 @@ required_named.add_argument("--input",
                             required=True,
                             type=argparse.FileType('r'),
                             help="csv file where each row is a bound pair")
-required_named.add_argument("--data_filenames_random",
-                            nargs=3,
+required_named.add_argument("--data_filenames",
+                            nargs=6,
                             required=True,
                             help="list of .csv filenames for data to be split randomly e.g. "
                                  "'--data_filenames training_rand.csv validation_rand.csv "
-                                 "test_rand.csv'")
-required_named.add_argument("--data_filenames_clustered",
-                            nargs=3,
-                            required=True,
-                            help="list of .csv filenames for data to be split by clusters e.g. "
-                                 "'--data_filenames training_clustered.csv "
+                                 "test_rand.csv training_clustered.csv "
                                  "validation_clustered.csv test_clustered.csv'")
-required_named.add_argument("--label_filenames_random",
-                            nargs=3,
+required_named.add_argument("--label_filenames",
+                            nargs=6,
                             required=True,
                             help="list of .npy filenames for labels to be split randomly e.g. "
                                  "'--label_filenames training_rand_y.csv validation_rand_y.csv "
-                                 "test_rand_y.csv'")
-required_named.add_argument("--label_filenames_clustered",
-                            nargs=3,
-                            required=True,
-                            help="list of .npy filenames for labels to be split by clusters e.g. "
-                                 "'--label_filenames training_clustered_y.csv "
+                                 "test_rand_y.csv training_clustered_y.csv "
                                  "validation_clustered_y.csv test_clustered_y.csv'")
 required_named.add_argument("--group_proportions",
                             type=int,
@@ -70,10 +60,8 @@ args = parser.parse_args()
 
 log_utils.setup_logging(args.verbosity)
 
-label_filenames_random = args.label_filenames_random
-label_filenames_clustered = args.label_filenames_clustered
-data_filenames_random = args.data_filenames_random
-data_filenames_clustered = args.data_filenames_clustered
+label_filenames = args.label_filenames
+data_filenames = args.data_filenames
 
 group_proportions = args.group_proportions
 
@@ -110,8 +98,6 @@ grouped_dfs_random = con_dat.split_dataset_random(non_test_data,
 
 logging.info(f"Creating lists with all the partitions and their corresponding filenames")
 grouped_dfs = grouped_dfs_random + [test_random_df] + grouped_dfs_clusters
-label_filenames = label_filenames_random + label_filenames_clustered
-data_filenames = data_filenames_random + data_filenames_clustered
 intended_group_proportions = [group_proportions[0],
                               group_proportions[1],
                               group_proportions[3],

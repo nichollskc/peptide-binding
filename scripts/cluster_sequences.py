@@ -137,22 +137,18 @@ def split_dataset_clustered(data_frame, group_proportions, seed=42):
     #   e.g. [60, 20, 20] -> [0.6, 0.2, 0.2] -> [0.6, 0.6 + 0.2] = [0.6, 0.8]
     fractions = np.cumsum([group_proportions])[:-1] / sum(group_proportions)
 
-    partitions = []
-
     df_with_clusters = cluster_sequences(data_frame)
-    grouped = [df.sample(frac=1, random_state=seed)
-               for _, df
-               in df_with_clusters.groupby('cdr_cluster_id')]
-    random.shuffle(grouped)
+    clustered = [df.sample(frac=1, random_state=seed)
+                 for _, df
+                 in df_with_clusters.groupby('cdr_cluster_id')]
+    random.shuffle(clustered)
+
+    full_shuffled = pd.concat(clustered)
 
     logging.info(f"Intended fractions are {fractions}")
-    counts = list(map(int, (fractions * len(grouped))))
+    counts = list(map(int, (fractions * len(full_shuffled))))
     logging.info(f"Intended (cumulative) cluster counts per group are {counts}")
 
-    index_lists = np.split(range(len(grouped)), counts)
-
-    for index_list in index_lists:
-        partition = pd.concat([grouped[i] for i in index_list])
-        partitions.append(partition)
+    partitions = np.split(full_shuffled, counts)
 
     return partitions
