@@ -273,10 +273,19 @@ def plot_alignment_scores(combined, cdr_similarities, target_similarities, k):
     sns.distplot(target_similarities, label="target", ax=ax[1], bins=bins)
 
     ax[0].set_title("Sum of CDR alignment and target alignment")
+    ax[0].set_ylabel("Density")
+    ax[1].set_ylabel("Density")
     ax[1].set_title("Individual sequence alignments")
     ax[1].legend()
 
     save_plot(f"explore_alignments_{k}.png")
+
+    plt.clf()
+    unused_fig, ax = plt.subplots(figsize=(6,2))
+    sns.distplot(combined, label="sum", ax=ax, bins=bins)
+    plt.title("Sum of CDR alignment and target alignment")
+    plt.ylabel("Density")
+    save_plot(f"similarity_scores.png")
 
     plt.clf()
 
