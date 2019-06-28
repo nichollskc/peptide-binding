@@ -51,8 +51,8 @@ DATA_TYPES = ['bag_of_words', 'padded_meiler_onehot', 'product_bag_of_words']
 ALPHA_DATA_GROUPS = ['training', 'validation', 'test']
 ALPHA_DATA_GROUP_PROPORTIONS = [60, 20, 20]
 
-BETA_DATA_GROUPS = ['training_rand', 'validation_rand', 'test_rand',
-                    'training_clust', 'validation_clust', 'test_clust']
+BETA_DATA_GROUPS = ['rand/training', 'rand/validation', 'rand/test',
+                    'clust/training', 'clust/validation', 'clust/test']
 BETA_DATA_GROUP_PROPORTIONS = [60, 20, 10, 10]
 
 rule all:
