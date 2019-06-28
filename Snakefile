@@ -57,11 +57,6 @@ BETA_DATA_GROUP_PROPORTIONS = [60, 20, 10, 10]
 
 rule all:
     input:
-        expand('datasets/alpha/{data_group}/data_{data_type}.npy',
-               data_group=ALPHA_DATA_GROUPS,
-               data_type=DATA_TYPES),
-        expand('datasets/alpha/{data_group}/labels.npy',
-               data_group=ALPHA_DATA_GROUPS),
         expand('datasets/beta/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
