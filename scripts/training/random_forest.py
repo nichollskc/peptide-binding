@@ -2,9 +2,9 @@
 # Since this gets wrapped by sacred, pylint will incorrectly identify variables
 #   as being unused and not being given to functions.
 # pylint: disable=unused-variable,no-value-for-parameter
-import json
 import os
 
+import joblib
 from sacred import Experiment
 from sacred.observers import MongoObserver
 
@@ -64,12 +64,16 @@ def run(_run):
     """Main method that will be wrapped by sacred. Loads data, trains and prints
     out summaries."""
     save_dir = models.create_experiment_save_dir(experiment_name)
+    print("Save directory is", save_dir)
 
     data = get_data()   # parameters injected automatically
 
     _run.log_scalar("X_train_size", len(data['X_train']))
     _run.log_scalar("X_val_size", len(data['X_val']))
     model = train_model_random_search(data)
+
+    model_filename = os.path.join(save_dir, "trained_model.joblib")
+    joblib.dump(model, model_filename)
 
     short_metrics, long_metrics, plots = models.evaluate_model(model,
                                                                data,
@@ -84,8 +88,7 @@ def run(_run):
     full_metrics.update(long_metrics)
 
     metrics_filename = os.path.join(save_dir, "metrics.json")
-    with open(metrics_filename, 'w') as f:
-        json.dump(full_metrics, f, indent=4)
+    models.save_to_json(full_metrics, metrics_filename)
 
     ex.add_artifact(metrics_filename)
     for plot_file in plots.values():

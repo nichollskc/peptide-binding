@@ -1,4 +1,5 @@
 """Trains models using processed datasets, and evaluates their performance."""
+import json
 import os
 
 import matplotlib.pyplot as plt
@@ -6,11 +7,31 @@ import numpy as np
 import seaborn as sns
 from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 import sklearn.metrics as metrics
 
 
 MODELS_DIR = "models/"
+
+
+# pylint: disable-msg=arguments-differ,method-hidden
+class NumpyEncoder(json.JSONEncoder):
+    """Custom encoder that can deal with np values."""
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NumpyEncoder, self).default(obj)
+
+
+def save_to_json(object_to_save, filename):
+    """Save object to file, using a NumpyEncoder."""
+    with open(filename, 'w') as f:
+        json.dump(object_to_save, f, cls=NumpyEncoder, indent=4)
 
 
 def create_experiment_save_dir(name):
@@ -68,7 +89,25 @@ def random_search_random_forest(data, param_dist, num_folds=10, num_param_sets=1
     rf_model = RandomForestClassifier()
     search = RandomizedSearchCV(estimator=rf_model,
                                 param_distributions=param_dist,
+                                n_jobs=-1,
                                 cv=num_folds,
+                                return_train_score=True,
+                                n_iter=num_param_sets)
+    search.fit(data['X_train'], data['y_train'])
+    return search
+
+
+def random_search_logistic_regression(data, param_dist, num_folds=10, num_param_sets=10):
+    """Performs a grid search to find the optimal hyperparameters for a logistic regression
+    using the training data in the data object. Uses cross-validation on all the training
+    data."""
+    clf = LogisticRegression(solver='saga',
+                             penalty='elasticnet',
+                             n_jobs=-1)
+    search = RandomizedSearchCV(estimator=clf,
+                                param_distributions=param_dist,
+                                cv=num_folds,
+                                return_train_score=True,
                                 n_iter=num_param_sets)
     search.fit(data['X_train'], data['y_train'])
     return search
