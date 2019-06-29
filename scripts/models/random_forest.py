@@ -23,19 +23,21 @@ ex.observers.append(MongoObserver.create(
 def cfg():
     """Config definitions for sacred"""
     representation = "bag_of_words"
+    dataset = "beta/rand"
     seed = 4213
     rf_params = {
-        'n_estimators': [50, 100, 200, 400],  # Number of trees in the forest
-        'max_features': [None, 'sqrt', 'log2'],  # Methods to choose number of features
-        'max_depth': [2, 5, 10, 30, 60]  # Maximum depth of trees
+        'n_estimators': [10, 50, 100, 200, 400, 600],  # Number of trees in the forest
+        'max_features': [0.1, 0.3, 'sqrt', 'log2'],  # Methods to choose number of features
+        'max_depth': [2, 5, 10, 20, 30, 50, 60]  # Maximum depth of trees
     }
-    num_param_sets = 5
+    num_param_sets = 10
     num_folds = 10
 
+
 @ex.capture
-def get_data(representation):
+def get_data(dataset, representation):
     """Get data corresponding to representation."""
-    return models.load_data(representation)
+    return models.load_data(dataset, representation)
 
 
 @ex.capture
@@ -50,8 +52,11 @@ def train_model_random_search(data, rf_params, num_folds, num_param_sets):
                                                 num_folds=num_folds,
                                                 num_param_sets=num_param_sets)
 
-    models.summarise_search(search, full_print=True)
-    return search.best_estimator_
+    models.summarise_search(search, num_results=num_param_sets, full_print=True)
+
+    model = search.best_estimator_
+    model.fit(data['X_train'], data['y_train'])
+    return model
 
 
 @ex.automain  # Using automain to enable command line integration.
@@ -61,6 +66,9 @@ def run(_run):
     save_dir = models.create_experiment_save_dir(experiment_name)
 
     data = get_data()   # parameters injected automatically
+
+    _run.log_scalar("X_train_size", len(data['X_train']))
+    _run.log_scalar("X_val_size", len(data['X_val']))
     model = train_model_random_search(data)
     short_metrics, long_metrics, plots = models.evaluate_model(model,
                                                                data['X_val'],

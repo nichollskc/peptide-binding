@@ -30,13 +30,13 @@ def create_experiment_save_dir(name):
     return unique_dir
 
 
-def load_data(representation):
+def load_data(dataset, representation):
     """Loads data corresponding to a particular type of representation."""
-    X_train = np.load(f"datasets/alpha/training/data_{representation}.npy")
-    y_train = np.load("datasets/alpha/training/labels.npy")
+    X_train = np.load(f"datasets/{dataset}/training/data_{representation}.npy")
+    y_train = np.load(f"datasets/{dataset}/training/labels.npy")
 
-    X_val = np.load(f"datasets/alpha/validation/data_{representation}.npy")
-    y_val = np.load("datasets/alpha/validation/labels.npy")
+    X_val = np.load(f"datasets/{dataset}/validation/data_{representation}.npy")
+    y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
 
     data = {
         'representation': representation,
@@ -78,17 +78,17 @@ def summarise_search(search, num_results=10, full_print=False):
     """Print the results from the top num_results estimators. If full_print, then
     also print out all the results from the search."""
     results = search.cv_results_
-    ranked_indices = results['rank_test_score'] - 1
-    total_runs = len(ranked_indices)
+    ranks = results['rank_test_score']
+    sorted_indices = sorted(zip(ranks, range(len(ranks))))
+    total_runs = len(ranks)
 
     print(f"Total runs: {total_runs}")
 
     if full_print:
         print(results)
 
-    for i in range(min(num_results, total_runs)):
-        index = ranked_indices[i]
-        print(f"Ranked {i}")
+    for rank, index in sorted_indices[:num_results]:
+        print(f"Ranked {rank}")
         print(f"Time to fit: {results['mean_fit_time'][index]:.2f}s")
         print(f"CV accuracy score: {results['mean_test_score'][index]:.4f}")
         print(f"Parameters: {results['params'][index]}")
