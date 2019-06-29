@@ -17,5 +17,7 @@ dependencies:
   - snakemake-minimal=5.5.0
   - defaults::tensorflow=1.13.1
   - bioconda::cd-hit=4.8.1
+  - anaconda::pymongo=3.8.0
+  - dnspython=1.16.0
 prefix: /anaconda3/envs/rationaldesign
 
