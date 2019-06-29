@@ -284,7 +284,7 @@ def plot_alignment_scores(combined, cdr_similarities, target_similarities, k):
     save_plot(f"explore_alignments_{k}.png")
 
     plt.clf()
-    unused_fig, ax = plt.subplots(figsize=(6,2))
+    unused_fig, ax = plt.subplots(figsize=(6, 2))
     sns.distplot(combined, label="sum", ax=ax, bins=bins)
     plt.title("Sum of CDR alignment and target alignment")
     plt.ylabel("Density")

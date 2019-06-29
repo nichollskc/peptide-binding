@@ -104,16 +104,24 @@ def grid_search_random_forest(data, param_grid, num_folds=10):
     return grid_search
 
 
-def evaluate_model(model, X_true, y_true, savedir):
+# pylint: disable-msg=too-many-locals
+def evaluate_model(model, data, savedir):
     """Uses the model to predict for the given data, and evaluates the model
     according to a number of metrics, returning these in a dictionary."""
-    y_pred = model.predict(X_true)
-    y_probs = model.predict_proba(X_true)[:, 1]
+    y_pred = model.predict(data['X_val'])
+    y_probs = model.predict_proba(data['X_val'])[:, 1]
+    y_true = data['y_val']
+
+    y_train_pred = model.predict(data['X_train'])
+    y_train_probs = model.predict_proba(data['X_train'])[:, 1]
+    y_train = data['y_train']
 
     precision, recall, _thresholds_pr = metrics.precision_recall_curve(y_true, y_probs)
     fpr, tpr, _thresholds_roc = metrics.roc_curve(y_true, y_probs)
     model_metrics = {
+        'training_accuracy': metrics.accuracy_score(y_train, y_train_pred),
         'accuracy': metrics.accuracy_score(y_true, y_pred),
+        'training_f1_score': metrics.f1_score(y_train, y_train_pred),
         'f1_score': metrics.f1_score(y_true, y_pred),
         'precision': metrics.precision_score(y_true, y_pred),
         'recall': metrics.recall_score(y_true, y_pred),
@@ -129,6 +137,9 @@ def evaluate_model(model, X_true, y_true, savedir):
         'binding_probs': stats.describe(y_probs)._asdict(),
         'binding_probs_positive': stats.describe(y_probs[y_true == 1])._asdict(),
         'binding_probs_negative': stats.describe(y_probs[y_true == 0])._asdict(),
+        'training_binding_probs': stats.describe(y_train_probs)._asdict(),
+        'training_binding_probs_positive': stats.describe(y_train_probs[y_train == 1])._asdict(),
+        'training_binding_probs_negative': stats.describe(y_train_probs[y_train == 0])._asdict(),
     }
 
     plot_filenames = {

@@ -30,7 +30,7 @@ def cfg():
         'max_features': [0.1, 0.3, 'sqrt', 'log2'],  # Methods to choose number of features
         'max_depth': [2, 5, 10, 20, 30, 50, 60]  # Maximum depth of trees
     }
-    num_param_sets = 10
+    num_param_sets = 20
     num_folds = 10
 
 
@@ -70,9 +70,9 @@ def run(_run):
     _run.log_scalar("X_train_size", len(data['X_train']))
     _run.log_scalar("X_val_size", len(data['X_val']))
     model = train_model_random_search(data)
+
     short_metrics, long_metrics, plots = models.evaluate_model(model,
-                                                               data['X_val'],
-                                                               data['y_val'],
+                                                               data,
                                                                save_dir)
 
     # Log the single number metrics using sacred
