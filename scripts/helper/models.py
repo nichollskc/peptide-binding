@@ -187,9 +187,26 @@ def evaluate_model(model, data, savedir):
         'pr_curve': os.path.join(savedir, "pr_curve.png")
     }
 
-    plt.clf()
-    sns.distplot(y_probs[y_true == 1], label="Positives", color=sns.color_palette('colorblind')[2])
-    sns.distplot(y_probs[y_true == 0], label="Negatives", color=sns.color_palette('colorblind')[3])
+
+    try:
+        plt.clf()
+        sns.distplot(y_probs[y_true == 1],
+                     label="Positives",
+                     color=sns.color_palette('colorblind')[2])
+        sns.distplot(y_probs[y_true == 0],
+                     label="Negatives",
+                     color=sns.color_palette('colorblind')[3])
+    except np.linalg.LinAlgError:
+        # If all the predicted probabilities are the same, then we cannot calculate kde
+        plt.clf()
+        sns.distplot(y_probs[y_true == 1],
+                     label="Positives",
+                     kde=False,
+                     color=sns.color_palette('colorblind')[2])
+        sns.distplot(y_probs[y_true == 0],
+                     label="Negatives",
+                     kde=False,
+                     color=sns.color_palette('colorblind')[3])
     plt.title("Prediction probabilities by class")
     plt.legend()
     plt.savefig(plot_filenames['pred_probs'])
