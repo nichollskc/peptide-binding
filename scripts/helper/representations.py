@@ -171,9 +171,10 @@ def generate_representation_all(bound_pairs_df, generate_func):
     Can give arguments for generate_func by using a lambda function e.g.
     generate_representation_all(df,
                                 lambda r: generate_padded_onehot_meiler(r, 4, 12))"""
-    representations = []
-    for _, row in bound_pairs_df.iterrows():
-        representation = generate_func(row)
-        representations.append(representation)
+    example_rep = generate_func(bound_pairs_df.iloc[0])
+    representations = np.zeros((len(bound_pairs_df), len(example_rep)))
+    for ind in range(len(bound_pairs_df)):
+        representation = generate_func(bound_pairs_df.iloc[ind])
+        representations[ind] = representation
 
-    return np.vstack(representations)
+    return representations
