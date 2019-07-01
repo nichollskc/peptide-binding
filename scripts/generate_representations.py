@@ -59,32 +59,31 @@ log_utils.setup_logging(args.verbosity)
 logging.info(f"Generating representations of type {args.representation} for input "
              f"from file '{args.input}'.")
 
-bound_pairs_df = con_dat.read_bound_pairs(args.input)[['cdr_resnames', 'target_resnames']]
+bound_pairs_df = con_dat.read_bound_pairs(args.input)
 total_bound_pairs = len(bound_pairs_df)
 logging.info(f"Number of bound pairs in complete table: {total_bound_pairs}")
 
 if args.representation == 'bag_of_words':
-    reps.generate_representation_all_batched(bound_pairs_df,
-                                     reps.generate_bagofwords,
-                                     outfile_root=args.output_file,
-                                     max_per_file=1000000)
+    representation_matrix = reps.generate_representation_all(bound_pairs_df,
+                                                             reps.generate_bagofwords)
 elif args.representation == 'product_bag_of_words':
-    reps.generate_representation_all_batched(bound_pairs_df,
-                                     reps.generate_crossed_bagofwords,
-                                     outfile_root=args.output_file,
-                                     max_per_file=1000000)
+    representation_matrix = reps.generate_representation_all(bound_pairs_df,
+                                                             reps.generate_crossed_bagofwords)
 elif args.representation == 'padded_meiler_onehot':
     fragment_lengths = json.load(args.fragment_lengths_file)
     max_cdr_len = fragment_lengths['max_cdr_length']
     max_target_len = fragment_lengths['max_target_length']
 
-    reps.generate_representation_all_batched(
+    representation_matrix = reps.generate_representation_all(
         bound_pairs_df,
-        lambda r: reps.generate_padded_onehot_meiler(r, max_cdr_len, max_target_len),
-        outfile_root=args.output_file,
-        max_per_file=1000000)
+        lambda r: reps.generate_padded_onehot_meiler(r, max_cdr_len, max_target_len))
 else:
     logging.error(f"Representation type {args.representation} not recognised. Aborting.")
     raise ValueError(f"Representation type {args.representation} not recognised.")
+
+logging.info(f"Representations generated of shape {representation_matrix.shape}:\n"
+             f"{representation_matrix}.")
+
+np.save(args.output_file, representation_matrix)
 
 logging.info("Done")

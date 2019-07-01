@@ -172,23 +172,9 @@ def generate_representation_all(bound_pairs_df, generate_func):
     generate_representation_all(df,
                                 lambda r: generate_padded_onehot_meiler(r, 4, 12))"""
     example_rep = generate_func(bound_pairs_df.iloc[0])
-    representations = np.empty((len(bound_pairs_df), len(example_rep)))
+    representations = np.zeros((len(bound_pairs_df), len(example_rep)))
     for ind in range(len(bound_pairs_df)):
         representation = generate_func(bound_pairs_df.iloc[ind])
         representations[ind] = representation
 
     return representations
-
-
-def generate_representation_all_batched(bound_pairs_df, generate_func, max_per_file, outfile_root):
-    """Generates the representations for all the rows of the given data frame in batches,
-    using the function generate_func to generate the representations for each
-    row.
-
-    Can give arguments for generate_func by using a lambda function e.g.
-    generate_representation_all(df,
-                                lambda r: generate_padded_onehot_meiler(r, 4, 12))"""
-    for i in range(int(np.ceil(len(bound_pairs_df) / max_per_file))):
-        batch = generate_representation_all(bound_pairs_df.iloc[max_per_file*i:max_per_file*(i+1)], generate_func)
-        filename = outfile_root + "_batch_" + str(i) + ".npy"
-        np.save(filename, batch)
