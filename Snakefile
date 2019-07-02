@@ -61,6 +61,16 @@ rule all:
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
         expand('datasets/beta/{data_group}/labels.npy',
+               data_group=BETA_DATA_GROUPS),
+        expand('datasets/beta/small/10000/{data_group}/data_{data_type}.npy',
+               data_group=BETA_DATA_GROUPS,
+               data_type=DATA_TYPES),
+        expand('datasets/beta/small/10000/{data_group}/labels.npy',
+               data_group=BETA_DATA_GROUPS),
+        expand('datasets/beta/small/1000000/{data_group}/data_{data_type}.npy',
+               data_group=BETA_DATA_GROUPS,
+               data_type=DATA_TYPES),
+        expand('datasets/beta/small/1000000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS)
 
 rule find_all_bound_pairs:
@@ -152,6 +162,38 @@ rule split_dataset_beta:
         data_filenames=expand('datasets/beta/{data_group}/bound_pairs.csv',
                               data_group=BETA_DATA_GROUPS),
         label_filenames=expand('datasets/beta/{data_group}/labels.npy',
+                               data_group=BETA_DATA_GROUPS)
+    shell:
+        'python3 scripts/split_dataset_clusters_random.py --input {input.combined} '\
+        '--group_proportions {params.group_proportions} '\
+        '--data_filenames {output.data_filenames} '\
+        '--label_filenames {output.label_filenames} '\
+        '--seed 13 --verbosity 3 2>&1 | tee {log}'
+
+rule reduce_dataset:
+    input:
+        combined='datasets/beta/rand/training/bound_pairs.csv',
+    params:
+        size='{size}'
+    log:
+        'logs/split_dataset_small_{size}.log'
+    output:
+        reduced='datasets/beta/small/{size}/full_bound_pairs.csv'
+    shell:
+        'head -n$(({params.size}+1)) {input.combined} > {output.reduced}'
+
+rule split_dataset_beta_small:
+    input:
+        combined='datasets/beta/small/{size}/full_bound_pairs.csv'
+    params:
+        group_proportions=BETA_DATA_GROUP_PROPORTIONS,
+        size='{size}'
+    log:
+        'logs/split_dataset_beta_small_{size}.log'
+    output:
+        data_filenames=expand('datasets/beta/small/{{size}}/{data_group}/bound_pairs.csv',
+                              data_group=BETA_DATA_GROUPS),
+        label_filenames=expand('datasets/beta/small/{{size}}/{data_group}/labels.npy',
                                data_group=BETA_DATA_GROUPS)
     shell:
         'python3 scripts/split_dataset_clusters_random.py --input {input.combined} '\

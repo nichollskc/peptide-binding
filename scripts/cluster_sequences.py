@@ -137,7 +137,10 @@ def split_dataset_clustered(data_frame, group_proportions, seed=42):
     #   e.g. [60, 20, 20] -> [0.6, 0.2, 0.2] -> [0.6, 0.6 + 0.2] = [0.6, 0.8]
     fractions = np.cumsum([group_proportions])[:-1] / sum(group_proportions)
 
-    df_with_clusters = cluster_sequences(data_frame)
+    if 'cdr_cluster_id' in data_frame.columns:
+        df_with_clusters = data_frame
+    else:
+        df_with_clusters = cluster_sequences(data_frame)
     clustered = [df.sample(frac=1, random_state=seed)
                  for _, df
                  in df_with_clusters.groupby('cdr_cluster_id')]
