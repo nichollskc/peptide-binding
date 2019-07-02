@@ -55,13 +55,19 @@ BETA_DATA_GROUPS = ['rand/training', 'rand/validation', 'rand/test',
                     'clust/training', 'clust/validation', 'clust/test']
 BETA_DATA_GROUP_PROPORTIONS = [60, 20, 10, 10]
 
+THRESHOLD_GROUPS = ['training', 'validation']
+ALIGNMENT_THRESHOLDS = [0, -2, -4, -8]
+
 rule all:
     input:
+        # Full dataset
         expand('datasets/beta/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
         expand('datasets/beta/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
+
+        # Smaller subsets of the dataset
         expand('datasets/beta/small/10000/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
@@ -71,7 +77,16 @@ rule all:
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
         expand('datasets/beta/small/1000000/{data_group}/labels.npy',
-               data_group=BETA_DATA_GROUPS)
+               data_group=BETA_DATA_GROUPS),
+
+        # Different versions of the dataset at different threshold values
+        expand('datasets/beta/thresholds/{threshold}/{data_group}/data_{data_type}.npy',
+               data_group=THRESHOLD_GROUPS,
+               data_type=DATA_TYPES,
+               threshold=ALIGNMENT_THRESHOLDS),
+        expand('datasets/beta/thresholds/{threshold}/{data_group}/labels.npy',
+               data_group=THRESHOLD_GROUPS,
+               threshold=ALIGNMENT_THRESHOLDS),
 
 rule find_all_bound_pairs:
     input:
@@ -200,6 +215,24 @@ rule split_dataset_beta_small:
         '--group_proportions {params.group_proportions} '\
         '--data_filenames {output.data_filenames} '\
         '--label_filenames {output.label_filenames} '\
+        '--seed 13 --verbosity 3 2>&1 | tee {log}'
+
+rule split_dataset_thresholds:
+    input:
+        combined='datasets/beta/small/1000000/full_bound_pairs.csv'
+    log:
+        'logs/split_dataset_alignment_thresholds.log'
+    output:
+        data_filenames=expand('datasets/beta/thresholds/{threshold}/{data_group}/bound_pairs.csv',
+                              threshold=ALIGNMENT_THRESHOLDS,
+                              data_group=THRESHOLD_GROUPS),
+        label_filenames=expand('datasets/beta/thresholds/{threshold}/{data_group}/labels.npy',
+                               threshold=ALIGNMENT_THRESHOLDS,
+                               data_group=THRESHOLD_GROUPS)
+    shell:
+        'python3 scripts/split_dataset_thresholds.py --input {input.combined} '\
+        '--data_filenames {output.data_filenames} --label_filenames {output.label_filenames} '\
+        '--thresholds 0 -2 -4 -8 --num_negatives 15000 '\
         '--seed 13 --verbosity 3 2>&1 | tee {log}'
 
 rule generate_representations:

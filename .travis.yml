@@ -28,6 +28,8 @@ install:
   - cd seq-align && make
   # Return to original directory after install
   - cd -
+  # Print record of installed packages
+  - conda list
 
 script:
   - source activate rationaldesign
@@ -36,6 +38,7 @@ script:
   # Test the snakemake workflow with qsub to check jobs are grouped properly
   - KCN_CURRENT_DIR=$(pwd) snakemake --cluster "qsub -q sl -V" --jobs 2 --dryrun --printshellcmds
   - KCN_CURRENT_DIR=$(pwd) snakemake --printshellcmds
+  - python3 setup.py install
   - python3 scripts/training/logistic_regression.py with representation='bag_of_words' dataset='beta/clust'
   - python3 scripts/training/random_forest.py with representation='bag_of_words' dataset='beta/clust'
 
