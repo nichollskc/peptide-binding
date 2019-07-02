@@ -19,5 +19,6 @@ dependencies:
   - bioconda::cd-hit=4.8.1
   - anaconda::pymongo=3.8.0
   - dnspython=1.16.0
+  - joblib=0.13.2
 prefix: /anaconda3/envs/rationaldesign
 
