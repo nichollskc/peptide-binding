@@ -28,6 +28,8 @@ install:
   - cd seq-align && make
   # Return to original directory after install
   - cd -
+  # Print record of installed packages
+  - conda list
 
 script:
   - source activate rationaldesign
