@@ -14,7 +14,7 @@ import scripts.helper.log_utils as log_utils
 import scripts.helper.utils as utils
 
 
-def main(input_dataframe, group_proportions, label_filenames, data_filenames, seed):
+def main(bound_pairs_df, group_proportions, label_filenames, data_filenames, seed):
     # Validate input
     assert len(label_filenames) == len(data_filenames), \
         "--label_filenames and --data_filenames must be comma-separated lists of the same length."
@@ -22,10 +22,7 @@ def main(input_dataframe, group_proportions, label_filenames, data_filenames, se
         "--label_filenames and --group_proportions must be comma-separated lists of the same length."
     assert sum(group_proportions) == 100, \
         "--group_proportions must be a comma-separated list of percentages that add up to 100."
-    logging.info(f"Splitting rows from file '{input_dataframe}' groups of data: "
-                 f"{list(zip(data_filenames, label_filenames, group_proportions))}.")
 
-    bound_pairs_df = con_dat.read_bound_pairs(input_dataframe)
     total_bound_pairs = len(bound_pairs_df)
     logging.info(f"Number of bound pairs in complete table: {total_bound_pairs}")
 
@@ -95,4 +92,9 @@ if __name__ == "__main__":
 
     print(args)
 
-    main(args.input, group_proportions, label_filenames, data_filenames, args.seed)
+    logging.info(f"Splitting rows from file '{args.input}' groups of data: "
+                 f"{list(zip(data_filenames, label_filenames, group_proportions))}.")
+
+    bound_pairs_df = con_dat.read_bound_pairs(args.input)
+
+    main(bound_pairs_df, group_proportions, label_filenames, data_filenames, args.seed)
