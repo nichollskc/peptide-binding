@@ -1,5 +1,6 @@
 """Trains models using processed datasets, and evaluates their performance."""
 import json
+import logging
 import os
 
 import matplotlib.pyplot as plt
@@ -53,11 +54,16 @@ def create_experiment_save_dir(name):
 
 def load_data(dataset, representation):
     """Loads data corresponding to a particular type of representation."""
+    logging.info(f"Loading data from dataset {dataset}, representation {representation}")
     X_train = np.load(f"datasets/{dataset}/training/data_{representation}.npy")
     y_train = np.load(f"datasets/{dataset}/training/labels.npy")
 
+    logging.info(f"Loaded training data")
+
     X_val = np.load(f"datasets/{dataset}/validation/data_{representation}.npy")
     y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
+
+    logging.info(f"Loaded validation data")
 
     data = {
         'representation': representation,
@@ -149,6 +155,7 @@ def grid_search_random_forest(data, param_grid, num_folds=10):
 def evaluate_model(model, data, savedir):
     """Uses the model to predict for the given data, and evaluates the model
     according to a number of metrics, returning these in a dictionary."""
+    logging.info(f"Getting predictions for validation set and training set")
     y_pred = model.predict(data['X_val'])
     y_probs = model.predict_proba(data['X_val'])[:, 1]
     y_true = data['y_val']
@@ -157,6 +164,7 @@ def evaluate_model(model, data, savedir):
     y_train_probs = model.predict_proba(data['X_train'])[:, 1]
     y_train = data['y_train']
 
+    logging.info(f"Calculating accuracy metrics")
     precision, recall, _thresholds_pr = metrics.precision_recall_curve(y_true, y_probs)
     fpr, tpr, _thresholds_roc = metrics.roc_curve(y_true, y_probs)
     model_metrics = {
@@ -189,6 +197,7 @@ def evaluate_model(model, data, savedir):
         'pr_curve': os.path.join(savedir, "pr_curve.png")
     }
 
+    logging.info(f"Plotting predicted probability distribution")
 
     try:
         plt.clf()
@@ -213,6 +222,7 @@ def evaluate_model(model, data, savedir):
     plt.legend()
     plt.savefig(plot_filenames['pred_probs'])
 
+    logging.info(f"Plotting ROC curve")
     plt.clf()
     plt.plot(fpr, tpr)
     plt.title("ROC curve")
@@ -221,6 +231,7 @@ def evaluate_model(model, data, savedir):
     plt.legend()
     plt.savefig(plot_filenames['roc_curve'])
 
+    logging.info(f"Plotting precision recall curve")
     plt.clf()
     plt.plot(recall, precision)
     plt.title("Precision recall curve")

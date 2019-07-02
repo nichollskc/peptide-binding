@@ -20,5 +20,6 @@ dependencies:
   - anaconda::pymongo=3.8.0
   - dnspython=1.16.0
   - joblib=0.13.2
+  - scikit-learn=0.21.2
 prefix: /anaconda3/envs/rationaldesign
 

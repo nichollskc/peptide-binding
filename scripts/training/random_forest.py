@@ -2,6 +2,7 @@
 # Since this gets wrapped by sacred, pylint will incorrectly identify variables
 #   as being unused and not being given to functions.
 # pylint: disable=unused-variable,no-value-for-parameter
+import logging
 import os
 
 import joblib
@@ -64,25 +65,33 @@ def run(_run):
     """Main method that will be wrapped by sacred. Loads data, trains and prints
     out summaries."""
     save_dir = models.create_experiment_save_dir(experiment_name)
-    print("Save directory is", save_dir)
+    logging.info(f"Save directory is {save_dir}")
 
+    logging.info(f"Loading data")
     data = get_data()   # parameters injected automatically
+    logging.info(f"Loaded data")
 
     _run.log_scalar("X_train_size", len(data['X_train']))
     _run.log_scalar("X_val_size", len(data['X_val']))
+
+    logging.info(f"Training model")
     model = train_model_random_search(data)
 
+    logging.info(f"Saving model")
     model_filename = os.path.join(save_dir, "trained_model.joblib")
     joblib.dump(model, model_filename)
 
+    logging.info(f"Evaluating model performance")
     short_metrics, long_metrics, plots = models.evaluate_model(model,
                                                                data,
                                                                save_dir)
 
+    logging.info(f"Saving metrics to sacred")
     # Log the single number metrics using sacred
     for key, value in short_metrics.items():
         _run.log_scalar(key, value)
 
+    logging.info(f"Saving metrics to file")
     # Combine the two metrics dictionaries into one and save as a json file
     full_metrics = short_metrics.copy()
     full_metrics.update(long_metrics)
@@ -90,6 +99,7 @@ def run(_run):
     metrics_filename = os.path.join(save_dir, "metrics.json")
     models.save_to_json(full_metrics, metrics_filename)
 
+    logging.info(f"Saving artifacts to sacred")
     ex.add_artifact(metrics_filename)
     for plot_file in plots.values():
         ex.add_artifact(plot_file)
