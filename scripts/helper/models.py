@@ -92,7 +92,8 @@ def random_search_random_forest(data, param_dist, num_folds=10, num_param_sets=1
                                 n_jobs=-1,
                                 cv=num_folds,
                                 return_train_score=True,
-                                n_iter=num_param_sets)
+                                n_iter=num_param_sets,
+                                verbose=10)
     search.fit(data['X_train'], data['y_train'])
     return search
 
@@ -108,7 +109,8 @@ def random_search_logistic_regression(data, param_dist, num_folds=10, num_param_
                                 param_distributions=param_dist,
                                 cv=num_folds,
                                 return_train_score=True,
-                                n_iter=num_param_sets)
+                                n_iter=num_param_sets,
+                                verbose=10)
     search.fit(data['X_train'], data['y_train'])
     return search
 
