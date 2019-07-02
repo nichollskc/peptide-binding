@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-python3 setup.py install
+set +x
 
 for REPRESENTATION in bag_of_words product_bag_of_words padded_meiler_onehot; do
-    for DATASET in 'beta/clust' 'beta/rand'; do
+    for DATASET in 'beta/small/100000/clust' 'beta/small/100000/rand'; do
         echo $REPRESENTATION $DATASET
-        python3 scripts/training/random_forest.py with representation=$REPRESENTATION dataset=$DATASET
-        python3 scripts/training/logistic_regression.py with representation=$REPRESENTATION dataset=$DATASET
+        qsub -q s32 -l mem=10G -v REPRESENTATION=$REPRESENTATION,DATASET=$DATASET scripts/training/run_random_forest.sh
+        qsub -q s32 -l mem=10G -v REPRESENTATION=$REPRESENTATION,DATASET=$DATASET scripts/training/run_logistic_regression.sh
     done
 done
