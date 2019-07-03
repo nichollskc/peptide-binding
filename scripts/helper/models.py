@@ -129,16 +129,16 @@ def summarise_search(search, num_results=10, full_print=False):
     sorted_indices = sorted(zip(ranks, range(len(ranks))))
     total_runs = len(ranks)
 
-    print(f"Total runs: {total_runs}")
+    logging.info(f"Total runs: {total_runs}")
 
     if full_print:
-        print(results)
+        logging.info(results)
 
     for rank, index in sorted_indices[:num_results]:
-        print(f"Ranked {rank}")
-        print(f"Time to fit: {results['mean_fit_time'][index]:.2f}s")
-        print(f"CV accuracy score: {results['mean_test_score'][index]:.4f}")
-        print(f"Parameters: {results['params'][index]}")
+        logging.info(f"Ranked {rank}")
+        logging.info(f"Time to fit: {results['mean_fit_time'][index]:.2f}s")
+        logging.info(f"CV accuracy score: {results['mean_test_score'][index]:.4f}")
+        logging.info(f"Parameters: {results['params'][index]}")
 
 
 def grid_search_random_forest(data, param_grid, num_folds=10):
