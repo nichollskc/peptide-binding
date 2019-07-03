@@ -1,9 +1,9 @@
 """Given a list of CDR-like fragments and the target fragments they interact with,
 generate an equal number of negative samples by permuting dissimilar CDR fragments.
 Dissimilarity is judged by sequence alignment."""
-# pylint: disable=wrong-import-position
 import argparse
 import logging
+# pylint: disable=wrong-import-position
 import os
 import sys
 sys.path.append(os.environ.get('KCN_CURRENT_DIR'))

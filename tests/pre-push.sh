@@ -3,7 +3,7 @@
 # Runs tests and returns non-zero exit code if they failed
 
 # Run pylint on all .py files and check no errors
-find . -iname "*.py" | xargs pylint --rcfile=.pylintrc
+find . -iname "scripts/*.py" | xargs pylint --rcfile=.pylintrc
 PYLINT_RESULT=$?
 
 # Test prospective commit

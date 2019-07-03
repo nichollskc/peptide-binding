@@ -65,7 +65,7 @@ def raw_bagofwords(resnames):
     represents the number of occurrences of that amino acid in the string."""
     onehot = raw_onehot(resnames)
 
-    return onehot.sum(axis=0)
+    return onehot.sum(axis=0).astype('int8')
 
 
 def raw_crossed_bagofwords(cdr_resnames, target_resnames):
@@ -76,7 +76,7 @@ def raw_crossed_bagofwords(cdr_resnames, target_resnames):
     cdr_bagofwords = raw_bagofwords(cdr_resnames)
     target_bagofwords = raw_bagofwords(target_resnames)
 
-    return np.outer(cdr_bagofwords, target_bagofwords).flatten()
+    return np.outer(cdr_bagofwords, target_bagofwords).flatten().astype('int8')
 
 
 def raw_meiler(resnames):
@@ -111,7 +111,7 @@ def raw_padded_onehot_meiler(resnames, max_length):
     num_features = len(residues_order) + 7  # one-hot + extra features
 
     cdr_mat = raw_onehot_meiler(resnames)
-    cdr_mat_pad = np.zeros((max_length, num_features))
+    cdr_mat_pad = np.zeros((max_length, num_features), dtype=np.float32)
     cdr_mat_pad[:cdr_mat.shape[0], :] = cdr_mat
 
     cdr_mask = np.zeros((max_length, 1), dtype=int)
@@ -171,9 +171,10 @@ def generate_representation_all(bound_pairs_df, generate_func):
     Can give arguments for generate_func by using a lambda function e.g.
     generate_representation_all(df,
                                 lambda r: generate_padded_onehot_meiler(r, 4, 12))"""
-    representations = []
-    for _, row in bound_pairs_df.iterrows():
-        representation = generate_func(row)
-        representations.append(representation)
+    example_rep = generate_func(bound_pairs_df.iloc[0])
+    representations = np.zeros((len(bound_pairs_df), len(example_rep)))
+    for ind in range(len(bound_pairs_df)):
+        representation = generate_func(bound_pairs_df.iloc[ind])
+        representations[ind] = representation
 
-    return np.vstack(representations)
+    return representations

@@ -1,9 +1,9 @@
 """Given a list of CDR-like fragments and the target fragments they interact with,
 split the list into train, test and validate."""
-# pylint: disable=wrong-import-position
 import argparse
 import logging
 import json
+# pylint: disable=wrong-import-position
 import os
 import sys
 sys.path.append(os.environ.get('KCN_CURRENT_DIR'))

@@ -1,8 +1,8 @@
 """Given a list of CDR-like fragments and the target fragments they interact with,
 split the list into train, test and validate."""
-# pylint: disable=wrong-import-position
 import argparse
 import logging
+# pylint: disable=wrong-import-position
 import os
 import sys
 sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
@@ -69,7 +69,7 @@ print(args)
 
 assert sum(group_proportions) == 100, \
     "--group_proportions must be a comma-separated list of percentages that add up to 100."
-logging.info(f"Splitting rows from file '{args.input}' into groups of data:")
+logging.info(f"Splitting rows from file '{args.input}' into groups of data.")
 
 bound_pairs_df = con_dat.read_bound_pairs(args.input)
 total_bound_pairs = len(bound_pairs_df)

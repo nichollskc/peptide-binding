@@ -1,7 +1,7 @@
 """Finds all CDR-like fragments and the target fragments they interact with."""
-# pylint: disable=wrong-import-position
 import argparse
 import logging
+# pylint: disable=wrong-import-position
 import os
 import sys
 sys.path.append(os.environ.get('KCN_CURRENT_DIR'))

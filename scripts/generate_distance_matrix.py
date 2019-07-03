@@ -3,11 +3,10 @@ Calculates distances between each pair of rows of the table."""
 # pylint: disable=wrong-import-position
 import os
 import sys
+sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 import numpy as np
 import pandas as pd
-
-sys.path.append(os.environ.get('current_dir'))
 
 import scripts.helper.distances as distances
 
