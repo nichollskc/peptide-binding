@@ -73,12 +73,16 @@ rule all:
                data_type=DATA_TYPES),
         expand('datasets/beta/small/10000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
+        expand('datasets/beta/small/100000/{data_group}/data_{data_type}.npy',
+               data_group=BETA_DATA_GROUPS,
+               data_type=DATA_TYPES),
+        expand('datasets/beta/small/100000/{data_group}/labels.npy',
+               data_group=BETA_DATA_GROUPS),
         expand('datasets/beta/small/1000000/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
         expand('datasets/beta/small/1000000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
-
         # Different versions of the dataset at different threshold values
         expand('datasets/beta/thresholds/{threshold}/{data_group}/data_{data_type}.npy',
                data_group=THRESHOLD_GROUPS,
