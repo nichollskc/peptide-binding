@@ -34,10 +34,13 @@ def cfg():
     representation = "bag_of_words"
     dataset = "beta/clust"
     learning_rate = 1e-3
-    dropout = 0.5
-    units_layer1 = 10
+    dropout = 0.3
+    units_layer1 = 15
     units_layer2 = 10
     seed = 1342
+    epochs = 500
+    mb_size = 100
+    regularisation_weight = 0.1
 
 
 @ex.capture
@@ -63,22 +66,27 @@ def get_data(dataset, representation):
 
 
 @ex.capture
-def train_model(x_train, y_train, x_valid, y_valid, learning_rate, units_layer1, units_layer2, dropout, seed):
+def train_model(x_train, y_train, x_valid, y_valid, regularisation_weight, learning_rate, mb_size, epochs, units_layer1, units_layer2, dropout, seed, _run):
     tf.reset_default_graph()
     tf.set_random_seed(seed)
     input_layer = tf.placeholder(tf.float32, shape=(None, x_train.shape[1]), name="x")
 
     training = tf.placeholder(tf.bool, name="training")
 
-    name = f"2_layer_lr_{learning_rate}_ul1_{units_layer1}_ul2_{units_layer2}_dropout_{dropout}"
+    regularizer = tf.contrib.layers.l2_regularizer(scale=0.1)
+
+    name = f"2_layer_lr_{learning_rate}_ul1_{units_layer1}_ul2_{units_layer2}_dropout_{dropout}_regularisation_{regularisation_weight}"
     dense = tf.layers.dense(input_layer, units_layer1, name="dense", activation=tf.nn.relu)
     second = tf.layers.dense(dense, units_layer2, name="second", activation=tf.nn.relu)
     dropped = tf.layers.dropout(second, rate=dropout, training=training, name="dropout")
-    logits = tf.layers.dense(dropped, 1, name="logits")
+    logits = tf.layers.dense(dropped, 1, name="logits", kernel_regularizer=regularizer)
     probs = tf.nn.sigmoid(logits, name="probs")
 
     labels = tf.placeholder(tf.float32, shape=(None, 1), name="labels")
     loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=logits, name="loss")
+
+    l2_loss = tf.losses.get_regularization_loss()
+    loss += l2_loss
     print("Loss shape: {}".format(loss.shape.as_list()))
     print("Logits shape: {}".format(logits.shape.as_list()))
 
@@ -95,9 +103,8 @@ def train_model(x_train, y_train, x_valid, y_valid, learning_rate, units_layer1,
 
     sess.run(tf.global_variables_initializer())
     global_step = 0
-    for i in range(1000):
+    for i in range(epochs):
         j = 0
-        mb_size = 1000
         losses = []
         accuracies = []
         while j + mb_size < len(x_train):
@@ -134,6 +141,9 @@ def train_model(x_train, y_train, x_valid, y_valid, learning_rate, units_layer1,
         y_valid_pred = np.where(y_valid_probs > 0.5, 1, 0).ravel()
         valid_accuracy = compute_accuracy(y_valid_probs, y_valid)
         print("Valid accuracy: {:.3f}".format(valid_accuracy))
+
+        _run.log_scalar("learning_train_accuracy", train_accuracy)
+        _run.log_scalar("learning_validation_accuracy", valid_accuracy)
     return y_valid_pred, y_valid_probs, y_train_pred, y_train_probs
 
 
