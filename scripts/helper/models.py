@@ -152,18 +152,7 @@ def grid_search_random_forest(data, param_grid, num_folds=10):
 
 
 # pylint: disable-msg=too-many-locals
-def evaluate_model(model, data, savedir):
-    """Uses the model to predict for the given data, and evaluates the model
-    according to a number of metrics, returning these in a dictionary."""
-    logging.info(f"Getting predictions for validation set and training set")
-    y_pred = model.predict(data['X_val'])
-    y_probs = model.predict_proba(data['X_val'])[:, 1]
-    y_true = data['y_val']
-
-    y_train_pred = model.predict(data['X_train'])
-    y_train_probs = model.predict_proba(data['X_train'])[:, 1]
-    y_train = data['y_train']
-
+def evaluate_predictions(y_pred, y_probs, y_true, y_train_pred, y_train_probs, y_train, savedir):
     logging.info(f"Calculating accuracy metrics")
     precision, recall, _thresholds_pr = metrics.precision_recall_curve(y_true, y_probs)
     fpr, tpr, _thresholds_roc = metrics.roc_curve(y_true, y_probs)
@@ -241,3 +230,24 @@ def evaluate_model(model, data, savedir):
     plt.savefig(plot_filenames['pr_curve'])
 
     return model_metrics, longer_model_metrics, plot_filenames
+
+
+def evaluate_model(model, data, savedir):
+    """Uses the model to predict for the given data, and evaluates the model
+    according to a number of metrics, returning these in a dictionary."""
+    logging.info(f"Getting predictions for validation set and training set")
+    y_pred = model.predict(data['X_val'])
+    y_probs = model.predict_proba(data['X_val'])[:, 1]
+    y_true = data['y_val']
+
+    y_train_pred = model.predict(data['X_train'])
+    y_train_probs = model.predict_proba(data['X_train'])[:, 1]
+    y_train = data['y_train']
+
+    return evaluate_predictions(y_pred,
+                                y_probs,
+                                y_true,
+                                y_train_pred,
+                                y_train_probs,
+                                y_train,
+                                savedir)
