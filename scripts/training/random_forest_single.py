@@ -33,8 +33,7 @@ def cfg():
 
 @ex.capture
 def construct_save_dir(dataset, representation):
-    base = os.path.join(dataset, representation, experiment_name)
-    return models.create_experiment_save_dir(base)
+    return os.path.join(models.MODELS_DIR, dataset, representation, experiment_name)
 
 
 @ex.capture
