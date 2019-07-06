@@ -3,6 +3,7 @@ import random
 import re
 import string
 
+import scripts.helper.construct_database as con_dat
 import scripts.helper.utils as utils
 
 def get_pdb_ids_file(filename):
@@ -41,6 +42,11 @@ def group_ids(ids):
 def group_name_to_csv_files(wildcards):
     id_group = GROUPED_IDS[wildcards.group_name]
     return expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
+
+def get_bound_pair_sdf_filenames(bound_pairs_df_filename):
+    df = con_dat.read_bound_pairs(bound_pairs_df_filename)
+    return [f"processed/sdfs/{utils.get_bound_pair_id_from_row(row)}"
+            for ind, row in df.iterrows()]
 
 PDB_IDS = get_all_pdb_ids()
 
@@ -249,3 +255,33 @@ rule generate_representations:
          'python3 scripts/generate_representations.py --input {input.dataset} '\
          '--output_file {output.outfile} --representation {params.representation} '\
          '--fragment_lengths_file {input.fragment_lengths} --verbosity 3 2>&1 | tee {log}'
+
+rule generate_pdb:
+    params:
+         bound_pair_id='{bound_pair_id}'
+    output:
+         'processed/pdbs/{bound_pair_id}.pdb'
+    shell:
+         'python3 -c "import scripts.generate_structure_representations as struct_reps; '\
+         'struct_reps.write_bound_pair_to_pdb_wrapped(\'{params.bound_pair_id}\')" '\
+         '>> logs/generate_pdb.log 2>&1'
+
+rule convert_pdb_sdf:
+    input:
+         'processed/pdbs/{bound_pair_id}.pdb'
+    output:
+         'processed/sdfs/{bound_pair_id}.sdf'
+    shell:
+         'obabel -ipdb {input} -osdf -O {output} >> logs/convert_pdb_sdf.log 2>&1'
+
+rule generate_e3fp_fingerprints:
+    input:
+         get_bound_pair_sdf_filenames('datasets/beta/small/10000/full_bound_pairs.csv')
+    params:
+         dataset='{dataset}'
+    log:
+         'logs/generate_e3fp_fingerprints.log'
+    output:
+         'processed/fingerprints/small/10000/fingerprints.fps.bz2'
+    shell:
+         'python3 $E3FP_REPO/fingerprint/generate.py {input} -d {output} -l {log}'

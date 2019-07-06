@@ -7,6 +7,12 @@ import Bio.PDB
 import scripts.helper.utils as utils
 
 
+def save_structure(structure, filename):
+    io = Bio.PDB.PDBIO()
+    io.set_structure(structure)
+    io.save(filename)
+
+
 def atom_is_ordered(atom):
     """Helper function for finding disordered atoms in a PDB structure."""
     return not atom.is_disordered() or atom.get_altloc() == 'A'
