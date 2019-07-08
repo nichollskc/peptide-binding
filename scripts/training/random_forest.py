@@ -76,8 +76,8 @@ def run(_run):
     data = get_data()   # parameters injected automatically
     logging.info(f"Loaded data")
 
-    _run.log_scalar("X_train_size", len(data['X_train']))
-    _run.log_scalar("X_val_size", len(data['X_val']))
+    _run.log_scalar("X_train_size", data['X_train'].shape[0])
+    _run.log_scalar("X_val_size", data['X_val'].shape[0])
 
     logging.info(f"Training model")
     model = train_model_random_search(data)

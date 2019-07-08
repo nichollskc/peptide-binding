@@ -56,13 +56,8 @@ def construct_save_dir(dataset, representation):
 @ex.capture
 def get_data(dataset, representation):
     """Get data corresponding to representation."""
-    logging.info(f"Loading data from dataset {dataset}, representation {representation}")
-    x_train = np.load(f"datasets/{dataset}/training/data_{representation}.npy")
-    y_train = np.load(f"datasets/{dataset}/training/labels.npy")
-
-    x_valid = np.load(f"datasets/{dataset}/validation/data_{representation}.npy")
-    y_valid = np.load(f"datasets/{dataset}/validation/labels.npy")
-    return x_train, y_train, x_valid, y_valid
+    data = models.load_data(dataset, representation)
+    return data['X_train'], data['y_train'], data['X_val'], data['y_val']
 
 
 @ex.capture
@@ -107,7 +102,7 @@ def train_model(x_train, y_train, x_valid, y_valid, regularisation_weight, learn
         j = 0
         losses = []
         accuracies = []
-        while j + mb_size < len(x_train):
+        while j + mb_size < x_train.shape[0]:
             _, computed_loss, computed_probs, summary = sess.run([train_op, loss, probs, merged],
                                                                  feed_dict={input_layer: x_train[
                                                                                          j:j + mb_size,
@@ -158,8 +153,8 @@ def run(_run):
     x_train, y_train, x_valid, y_valid = get_data()   # parameters injected automatically
     logging.info(f"Loaded data")
 
-    _run.log_scalar("X_train_size", len(x_train))
-    _run.log_scalar("X_val_size", len(x_valid))
+    _run.log_scalar("X_train_size", x_train.shape[0])
+    _run.log_scalar("X_val_size", x_valid.shape[0])
 
     logging.info(f"Training model")
     y_valid_pred, y_valid_probs, y_train_pred, y_train_probs = train_model(x_train,
