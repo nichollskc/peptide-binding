@@ -43,9 +43,10 @@ def group_name_to_csv_files(wildcards):
     id_group = GROUPED_IDS[wildcards.group_name]
     return expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
 
-def get_bound_pair_sdf_filenames(bound_pairs_df_filename):
+def get_bound_pair_sdf_filenames(wildcards):
+    bound_pairs_df_filename = f"datasets/{wildcards.full_dataset}/bound_pairs.csv"
     df = con_dat.read_bound_pairs(bound_pairs_df_filename)
-    return [f"processed/sdfs/{utils.get_bound_pair_id_from_row(row)}"
+    return [f"processed/sdfs/{utils.get_bound_pair_id_from_row(row)}.sdf"
             for ind, row in df.iterrows()]
 
 PDB_IDS = get_all_pdb_ids()
@@ -276,12 +277,15 @@ rule convert_pdb_sdf:
 
 rule generate_e3fp_fingerprints:
     input:
-         get_bound_pair_sdf_filenames('datasets/beta/small/10000/full_bound_pairs.csv')
+         get_bound_pair_sdf_filenames
     params:
-         dataset='{dataset}'
+         dataset='{full_dataset}'
     log:
-         'logs/generate_e3fp_fingerprints.log'
+         'logs/generate_representations/{full_dataset}_e3fp_fingerprints.log'
     output:
-         'processed/fingerprints/small/10000/fingerprints.fps.bz2'
+         'datasets/{full_dataset}/data_fingerprints.fps.bz2'
+    conda:
+         'e3fp_env.yml'
     shell:
-         'python3 $E3FP_REPO/fingerprint/generate.py {input} -d {output} -l {log}'
+         'python3 scripts/generate_structure_representations.py {input} --outfile {output} '\
+         '--verbosity 3 >> {log} 2>&1'
