@@ -55,15 +55,27 @@ def create_experiment_save_dir(name):
 def load_data(dataset, representation):
     """Loads data corresponding to a particular type of representation."""
     logging.info(f"Loading data from dataset {dataset}, representation {representation}")
-    X_train = np.load(f"datasets/{dataset}/training/data_{representation}.npy")
-    y_train = np.load(f"datasets/{dataset}/training/labels.npy")
 
-    logging.info(f"Loaded training data")
+    if representation == "fingerprints":
+        X_train = scipy.sparse.load_npz(f"datasets/{dataset}/training/data_{representation}.npz")
+        y_train = np.load(f"datasets/{dataset}/training/labels.npy")
 
-    X_val = np.load(f"datasets/{dataset}/validation/data_{representation}.npy")
-    y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
+        logging.info(f"Loaded training data")
 
-    logging.info(f"Loaded validation data")
+        X_val = scipy.sparse.load_npz(f"datasets/{dataset}/validation/data_{representation}.npz")
+        y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
+
+        logging.info(f"Loaded validation data")
+    else:
+        X_train = np.load(f"datasets/{dataset}/training/data_{representation}.npy")
+        y_train = np.load(f"datasets/{dataset}/training/labels.npy")
+
+        logging.info(f"Loaded training data")
+
+        X_val = np.load(f"datasets/{dataset}/validation/data_{representation}.npy")
+        y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
+
+        logging.info(f"Loaded validation data")
 
     data = {
         'representation': representation,

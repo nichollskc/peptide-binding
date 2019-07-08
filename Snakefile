@@ -77,11 +77,22 @@ rule all:
         expand('datasets/beta/small/10000/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
+        expand('datasets/beta/small/10000/{data_group}/data_fingerprints.npz',
+               data_group=BETA_DATA_GROUPS),
         expand('datasets/beta/small/10000/{data_group}/labels.npy',
+               data_group=BETA_DATA_GROUPS),
+        expand('datasets/beta/small/100000/{data_group}/data_{data_type}.npy',
+               data_group=BETA_DATA_GROUPS,
+               data_type=DATA_TYPES),
+        expand('datasets/beta/small/100000/{data_group}/data_fingerprints.npz',
+               data_group=BETA_DATA_GROUPS),
+        expand('datasets/beta/small/100000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
         expand('datasets/beta/small/1000000/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
+        expand('datasets/beta/small/1000000/{data_group}/data_fingerprints.npz',
+               data_group=BETA_DATA_GROUPS),
         expand('datasets/beta/small/1000000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
         # Different versions of the dataset at different threshold values
@@ -283,7 +294,7 @@ rule generate_e3fp_fingerprints:
     log:
          'logs/generate_representations/{full_dataset}_e3fp_fingerprints.log'
     output:
-         'datasets/{full_dataset}/data_fingerprints.fps.bz2'
+         'datasets/{full_dataset}/data_fingerprints.npz'
     conda:
          'e3fp_env.yml'
     shell:

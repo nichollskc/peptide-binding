@@ -71,5 +71,10 @@ if __name__ == "__main__":
     logging.info(f"Generated {len(database)} fingerprints.")
 
     logging.info(f"Saving database to file {args.outfile}")
-    #scipy.sparse.save_npz(args.outfile, database.array)
-    database.save(args.outfile)
+    scipy.sparse.save_npz(args.outfile, database.array)
+
+    names = [entry.name for entry in database]
+    first_names = '\n'.join(names[:30])
+    logging.info(f"Checking fingerprints in the same order as input.\n"
+                 f"First few files are:\n{first_names}")
+    assert [entry.name for entry in database] == args.input
