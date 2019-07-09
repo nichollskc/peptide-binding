@@ -318,15 +318,14 @@ rule all_sdf_files:
 
 rule generate_e3fp_fingerprints:
     input:
-         get_bound_pair_sdf_filenames
+         sdf_filenames=get_bound_pair_sdf_filenames
     params:
          dataset='{full_dataset}'
     log:
          'logs/generate_representations/{full_dataset}_e3fp_fingerprints.log'
     output:
-         'datasets/{full_dataset}/data_fingerprints.npz'
+         dataset='datasets/{full_dataset}/data_fingerprints.npz'
     conda:
          'e3fp_env.yml'
-    shell:
-         'python3 scripts/generate_structure_representations.py {input} --outfile {output} '\
-         '--verbosity 3 >> {log} 2>&1'
+    script:
+         'scripts/snakemake_generate_structure_representations.py'

@@ -46,6 +46,22 @@ def generate_fingerprints_parallel(sdf_files, threads):
     return database
 
 
+def main(input_files, outfile):
+    logging.info(f"Generating fingerprints for {len(input_files)} SD files.")
+    database = generate_fingerprints_parallel(input_files, None)
+
+    logging.info(f"Generated {len(database)} fingerprints.")
+
+    logging.info(f"Saving database to file {outfile}")
+    scipy.sparse.save_npz(outfile, database.array)
+
+    names = [entry.name for entry in database]
+    first_names = '\n'.join(names[:30])
+    logging.info(f"Checking fingerprints in the same order as input.\n"
+                 f"First few files are:\n{first_names}")
+    assert [entry.name for entry in database] == input_files
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Generate an e3fp fingerprints database for all the SD files given.")
@@ -65,16 +81,4 @@ if __name__ == "__main__":
 
     log_utils.setup_logging(args.verbosity)
 
-    logging.info(f"Generating fingerprints for {len(args.input)} SD files.")
-    database = generate_fingerprints_parallel(args.input, None)
-
-    logging.info(f"Generated {len(database)} fingerprints.")
-
-    logging.info(f"Saving database to file {args.outfile}")
-    scipy.sparse.save_npz(args.outfile, database.array)
-
-    names = [entry.name for entry in database]
-    first_names = '\n'.join(names[:30])
-    logging.info(f"Checking fingerprints in the same order as input.\n"
-                 f"First few files are:\n{first_names}")
-    assert [entry.name for entry in database] == args.input
+    main(args.input, args.outfile)
