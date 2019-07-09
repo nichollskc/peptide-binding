@@ -5,7 +5,6 @@ channels:
   - keiserlab
   - defaults
 dependencies:
-  - appnope=0.1.0
   - backcall=0.1.0
   - blas=1.0
   - bzip2=1.0.6
@@ -25,11 +24,8 @@ dependencies:
   - jedi=0.13.3
   - jpeg=9b
   - libboost=1.67.0
-  - libcxx=4.0.1
-  - libcxxabi=4.0.1
   - libedit=3.1
   - libffi=3.2.1
-  - libgfortran=3.0.1
   - libiconv=1.15
   - libpng=1.6.37
   - libtiff=4.0.10

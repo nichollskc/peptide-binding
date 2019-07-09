@@ -15,10 +15,17 @@ import scripts.helper.log_utils as log_utils
 
 def generate_e3fp_fingerprint(sdf_file):
     logging.debug(f"Generating fingerprint for file {sdf_file}")
+    # Load molecule from file using rdkit 
     molecule = Chem.SDMolSupplier(sdf_file, sanitize=False)[0]
+    # Calculate necessary properties
+    molecule.UpdatePropertyCache(strict=False)
+
+    # Set up fingerprinter and generate fingerprint for this molecule
     fingerprinter = fprinter.Fingerprinter(bits=1048576)
     fingerprinter.run(mol=molecule)
     result = fingerprinter.get_fingerprint_at_level()
+
+    # Set name of the fingerprint to the sdf file name
     result.name = sdf_file
 
     return result
