@@ -1,9 +1,21 @@
 """Utils functions for rational design"""
 import csv
+import glob
 import logging
 import json
 import os
 import re
+
+
+def get_map_float_to_str_pdb_ids():
+    files = glob.glob("icMatrix/*_icMat.bmat")
+    ids = [f.split("/")[1].split("_")[0] for f in files]
+    exp_ids = [pdb_id for pdb_id in ids if re.match(r'\de\d\d', pdb_id)]
+    exp_dict = dict([(str(float(pdb_id)), pdb_id) for pdb_id in exp_ids])
+    return exp_dict
+
+
+map_float_to_str_pdb_ids = get_map_float_to_str_pdb_ids()
 
 
 def get_id_filename(pdb_id):
@@ -30,14 +42,25 @@ def sanitise_pdb_id(pdb_id):
     """PDB ids such as 3e18 will have been read into pandas as numbers i.e. 3e+18
     To correct this, we can essentially just remove the +, along with any extra
     decimal places introduced."""
-    if '+' in pdb_id:
-        match = re.match(r'(\d).*(e)\+.*(\d\d)', pdb_id)
-        sanitised_pdb_id = "".join(match.groups())
-        logging.info(f"PDB ID '{pdb_id}' had been converted to a float. "
-                     f"Fixed this, the ID is now '{sanitised_pdb_id}'")
-        return sanitised_pdb_id
-    else:
-        return pdb_id
+
+    # If the ID uses only numbers, the letter e, plus sign and dot then it might
+    # be an ID that has been converted to a float
+    sanitised = pdb_id
+    if re.match(r'^[\de\+\.]*$', pdb_id):
+        try:
+            sanitised = map_float_to_str_pdb_ids[pdb_id]
+        except KeyError:
+            # This isn't an ID that has been converted from a float, so leave it alone
+            pass
+        if len(sanitised) != 4:
+            match = re.match(r'(\d).*(e)\+.*(\d\d)', sanitised)
+            if match:
+                sanitised = ''.join(match.groups())
+            else:
+                logging.warning(f"PDB ID '{sanitised}' is longer than 4 characters, "
+                                f"so suspect it has been converted to a float, but have "
+                                f"failed to sanitise it.")
+    return sanitised
 
 
 def get_bound_pair_id_from_row(row):
