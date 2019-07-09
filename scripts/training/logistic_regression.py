@@ -27,11 +27,10 @@ def cfg():
     dataset = "beta/rand"
     seed = 4213
     lr_params = {
-        'C': np.geomspace(1e-4, 1e4, 10),  # Inverse of regularisation strength
-                                           #   so smaller values mean more regularisation
+        'alpha': np.geomspace(1e-4, 1, 10),  # Regularisation strength
         'l1_ratio': np.linspace(0, 1, 11),  # Ratio between L1 and L2 regularisation
                                             # l1_ratio = 0 => L2 penalty
-                                            # l1_ratio = 1 => L1 penalty
+                                            # l1_ratio = 1 => L1 penalty,
     }
     num_param_sets = 15
     num_folds = 10

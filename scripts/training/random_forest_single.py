@@ -26,9 +26,9 @@ def cfg():
     representation = "bag_of_words"
     dataset = "beta/rand"
     seed = 4213
-    n_estimators = 400
+    n_estimators = 100
     max_features = 'sqrt'
-    max_depth = 60
+    max_depth = 10
 
 
 @ex.capture

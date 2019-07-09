@@ -121,9 +121,9 @@ def random_search_logistic_regression(data, param_dist, num_folds=10, num_param_
     """Performs a grid search to find the optimal hyperparameters for a logistic regression
     using the training data in the data object. Uses cross-validation on all the training
     data."""
-    clf = LogisticRegression(solver='saga',
-                             penalty='elasticnet',
-                             n_jobs=-1)
+    clf = SGDClassifier(penalty='elasticnet',
+                        loss='log',
+                        n_jobs=-1)
     search = RandomizedSearchCV(estimator=clf,
                                 param_distributions=param_dist,
                                 cv=num_folds,
