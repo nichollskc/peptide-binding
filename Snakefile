@@ -43,15 +43,26 @@ def group_name_to_csv_files(wildcards):
     id_group = GROUPED_IDS[wildcards.group_name]
     return expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
 
+def group_name_to_sdf_files(wildcards):
+    id_group = GROUPED_BOUND_PAIR_IDS[wildcards.group_name]
+    return expand('processed/sdfs/{bound_pair_id}.sdf', bound_pair_id=id_group)
+
 def get_bound_pair_sdf_filenames(wildcards):
     bound_pairs_df_filename = f"datasets/{wildcards.full_dataset}/bound_pairs.csv"
     df = con_dat.read_bound_pairs(bound_pairs_df_filename)
     return [f"processed/sdfs/{utils.get_bound_pair_id_from_row(row)}.sdf"
             for ind, row in df.iterrows()]
 
-PDB_IDS = get_all_pdb_ids()
+def get_all_bound_pair_ids():
+    bound_pairs_df_filename = f"datasets/beta/small/10000/full_bound_pairs.csv"
+    df = con_dat.read_bound_pairs(bound_pairs_df_filename)
+    return [utils.get_bound_pair_id_from_row(row) for ind, row in df.iterrows()]
 
+PDB_IDS = get_all_pdb_ids()
 GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
+
+BOUND_PAIR_IDS = get_all_bound_pair_ids()
+GROUPED_BOUND_PAIR_IDS, GROUP_BOUND_PAIR_NAMES = group_ids(BOUND_PAIR_IDS)
 
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['bag_of_words', 'padded_meiler_onehot', 'product_bag_of_words']
@@ -271,20 +282,39 @@ rule generate_representations:
 rule generate_pdb:
     params:
          bound_pair_id='{bound_pair_id}'
+    group:
+        'e3fp'
     output:
          'processed/pdbs/{bound_pair_id}.pdb'
     shell:
-         'python3 -c "import scripts.generate_structure_representations as struct_reps; '\
-         'struct_reps.write_bound_pair_to_pdb_wrapped(\'{params.bound_pair_id}\')" '\
+         'python3 -c "import scripts.helper.query_biopython as bio; '\
+         'bio.write_bound_pair_to_pdb_wrapped(\'{params.bound_pair_id}\')" '\
          '>> logs/generate_pdb.log 2>&1'
 
 rule convert_pdb_sdf:
     input:
          'processed/pdbs/{bound_pair_id}.pdb'
+    group:
+        'e3fp'
     output:
          'processed/sdfs/{bound_pair_id}.sdf'
     shell:
          'obabel -ipdb {input} -osdf -O {output} >> logs/convert_pdb_sdf.log 2>&1'
+
+rule aggregate_pdb_generation:
+# This rule just forces the convert_pdb_sdf rules to run in batches
+    #   by placing them in the same rule group, and forcing aggregation in
+    #   this rule
+    input:
+        group_name_to_sdf_files
+    output:
+        touch('processed/sdf_checks/{group_name}')
+    group:
+        'e3fp'
+
+rule all_sdf_files:
+    input:
+         group_names=expand('processed/sdf_checks/{group_name}', group_name=GROUP_BOUND_PAIR_NAMES)
 
 rule generate_e3fp_fingerprints:
     input:
