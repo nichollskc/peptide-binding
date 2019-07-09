@@ -31,7 +31,7 @@ def sanitise_pdb_id(pdb_id):
     To correct this, we can essentially just remove the +, along with any extra
     decimal places introduced."""
     if '+' in pdb_id:
-        match = re.match(r'(\d).*(e)\+.*(\d\d)', name)
+        match = re.match(r'(\d).*(e)\+.*(\d\d)', pdb_id)
         sanitised_pdb_id = "".join(match.groups())
         logging.info(f"PDB ID '{pdb_id}' had been converted to a float. "
                      f"Fixed this, the ID is now '{sanitised_pdb_id}'")
