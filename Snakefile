@@ -1,4 +1,5 @@
 import glob
+import os
 import random
 import re
 import string
@@ -48,20 +49,28 @@ def group_name_to_sdf_files(wildcards):
     return expand('processed/sdfs/{bound_pair_id}.sdf', bound_pair_id=id_group)
 
 def get_bound_pair_sdf_filenames(wildcards):
-    bound_pairs_df_filename = f"datasets/{wildcards.full_dataset}/bound_pairs.csv"
-    df = con_dat.read_bound_pairs(bound_pairs_df_filename)
-    return [f"processed/sdfs/{utils.get_bound_pair_id_from_row(row)}.sdf"
-            for ind, row in df.iterrows()]
+    bound_pair_ids = get_all_bound_pair_ids(f"datasets/{wildcards.full_dataset}/bound_pairs.csv")
+    return [f"processed/sdfs/{bound_pair_id}.sdf" for bound_pair_id in bound_pair_ids]
 
-def get_all_bound_pair_ids():
-    bound_pairs_df_filename = f"datasets/beta/small/10000/full_bound_pairs.csv"
-    df = con_dat.read_bound_pairs(bound_pairs_df_filename)
-    return [utils.get_bound_pair_id_from_row(row) for ind, row in df.iterrows()]
+def get_all_bound_pair_ids(bound_pairs_df_filename):
+    prefix, extension = os.path.splitext(bound_pairs_df_filename)
+    ids_filename = prefix + '.ids.txt'
+    try:
+        with open(ids_filename, 'r') as f:
+            raw_bound_pair_ids = f.readlines()
+            bound_pair_ids = [line.strip() for line in raw_bound_pair_ids]
+    except FileNotFoundError:
+        df = con_dat.read_bound_pairs(bound_pairs_df_filename)
+        bound_pair_ids = [utils.get_bound_pair_id_from_row(row) for ind, row in df.iterrows()]
+        with open(ids_filename, 'w') as f:
+            f.write('\n'.join(bound_pair_ids))
+
+    return bound_pair_ids
 
 PDB_IDS = get_all_pdb_ids()
 GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
 
-BOUND_PAIR_IDS = get_all_bound_pair_ids()
+BOUND_PAIR_IDS = get_all_bound_pair_ids("datasets/beta/small/10000/full_bound_pairs.csv")
 GROUPED_BOUND_PAIR_IDS, GROUP_BOUND_PAIR_NAMES = group_ids(BOUND_PAIR_IDS)
 
 LABELS = ['positive', 'negative']
