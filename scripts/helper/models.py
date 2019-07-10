@@ -108,7 +108,7 @@ def random_search_random_forest(data, param_dist, num_folds=10, num_param_sets=1
     rf_model = RandomForestClassifier()
     search = RandomizedSearchCV(estimator=rf_model,
                                 param_distributions=param_dist,
-                                n_jobs=-1,
+                                n_jobs=1,
                                 cv=num_folds,
                                 return_train_score=True,
                                 n_iter=num_param_sets,
@@ -123,7 +123,7 @@ def random_search_logistic_regression(data, param_dist, num_folds=10, num_param_
     data."""
     clf = SGDClassifier(penalty='elasticnet',
                         loss='log',
-                        n_jobs=-1)
+                        n_jobs=1)
     search = RandomizedSearchCV(estimator=clf,
                                 param_distributions=param_dist,
                                 cv=num_folds,
