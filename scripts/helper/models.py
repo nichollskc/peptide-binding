@@ -55,7 +55,11 @@ def create_experiment_save_dir_unique(name):
 
 def create_experiment_save_dir(dataset, representation, experiment_name):
     save_dir = os.path.join(MODELS_DIR, dataset, representation, experiment_name)
-    os.makedirs(save_dir)
+    try:
+        os.makedirs(save_dir)
+    except FileExistsError:
+        # directory already exists
+        pass
     return save_dir
 
 
