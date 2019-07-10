@@ -37,6 +37,12 @@ def cfg():
 
 
 @ex.capture
+def construct_save_dir(dataset, representation):
+    save_dir = models.create_experiment_save_dir(dataset, representation, experiment_name)
+    return save_dir
+
+
+@ex.capture
 def get_data(dataset, representation):
     """Get data corresponding to representation."""
     return models.load_data(dataset, representation)
@@ -65,7 +71,7 @@ def train_model_random_search(data, lr_params, num_folds, num_param_sets):
 def run(_run):
     """Main method that will be wrapped by sacred. Loads data, trains and prints
     out summaries."""
-    save_dir = models.create_experiment_save_dir(experiment_name)
+    save_dir = construct_save_dir()
 
     data = get_data()  # parameters injected automatically
 

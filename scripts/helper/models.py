@@ -36,7 +36,7 @@ def save_to_json(object_to_save, filename):
         json.dump(object_to_save, f, cls=NumpyEncoder, indent=4)
 
 
-def create_experiment_save_dir(name):
+def create_experiment_save_dir_unique(name):
     """Finds a unique folder to save artifacts for a given experiment."""
     filename = os.path.join(MODELS_DIR, name)
     i = 1
@@ -51,6 +51,12 @@ def create_experiment_save_dir(name):
         # directory already exists
         pass
     return unique_dir
+
+
+def create_experiment_save_dir(dataset, representation, experiment_name):
+    save_dir = os.path.join(MODELS_DIR, dataset, representation, experiment_name)
+    os.makedirs(save_dir)
+    return save_dir
 
 
 def load_data(dataset, representation):
