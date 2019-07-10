@@ -129,11 +129,11 @@ rule all:
         expand('datasets/beta/small/1000000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
         # Different versions of the dataset at different threshold values
-        expand('datasets/beta/thresholds/{threshold}/{data_group}/data_{data_type}.npy',
+        expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/data_{data_type}.npy',
                data_group=THRESHOLD_GROUPS,
                data_type=DATA_TYPES,
                threshold=ALIGNMENT_THRESHOLDS),
-        expand('datasets/beta/thresholds/{threshold}/{data_group}/labels.npy',
+        expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/labels.npy',
                data_group=THRESHOLD_GROUPS,
                threshold=ALIGNMENT_THRESHOLDS),
 
@@ -272,10 +272,10 @@ rule split_dataset_thresholds:
     log:
         'logs/split_dataset_alignment_thresholds.log'
     output:
-        data_filenames=expand('datasets/beta/thresholds/{threshold}/{data_group}/bound_pairs.csv',
+        data_filenames=expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/bound_pairs.csv',
                               threshold=ALIGNMENT_THRESHOLDS,
                               data_group=THRESHOLD_GROUPS),
-        label_filenames=expand('datasets/beta/thresholds/{threshold}/{data_group}/labels.npy',
+        label_filenames=expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/labels.npy',
                                threshold=ALIGNMENT_THRESHOLDS,
                                data_group=THRESHOLD_GROUPS)
     shell:
