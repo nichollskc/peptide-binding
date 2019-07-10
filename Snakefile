@@ -1,4 +1,5 @@
 import glob
+import itertools
 import os
 import random
 import re
@@ -67,11 +68,20 @@ def get_all_bound_pair_ids(bound_pairs_df_filename):
 
     return bound_pair_ids
 
+def combine_all_bound_pair_ids():
+    filenames = expand('datasets/beta/small/{size}/{data_group}/bound_pairs.csv',
+                                   data_group=BETA_DATA_GROUPS,
+                                   size=['10000']) +\
+                expand('datasets/beta/thresholds/{threshold}/{data_group}/bound_pairs.csv',
+                       data_group=THRESHOLD_GROUPS,
+                       threshold=ALIGNMENT_THRESHOLDS)
+    all_lists = [get_all_bound_pair_ids(file) for file in filenames]
+    combined = itertools.chain.from_iterable(all_lists)
+    no_duplicates = list(set(combined))
+    return no_duplicates
+
 PDB_IDS = get_all_pdb_ids()
 GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
-
-BOUND_PAIR_IDS = get_all_bound_pair_ids("datasets/beta/small/10000/full_bound_pairs.csv")
-GROUPED_BOUND_PAIR_IDS, GROUP_BOUND_PAIR_NAMES = group_ids(BOUND_PAIR_IDS)
 
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['bag_of_words', 'padded_meiler_onehot', 'product_bag_of_words']
@@ -84,6 +94,9 @@ BETA_DATA_GROUP_PROPORTIONS = [60, 20, 10, 10]
 
 THRESHOLD_GROUPS = ['training', 'validation']
 ALIGNMENT_THRESHOLDS = [0, -2, -4, -8]
+
+BOUND_PAIR_IDS = combine_all_bound_pair_ids()
+GROUPED_BOUND_PAIR_IDS, GROUP_BOUND_PAIR_NAMES = group_ids(BOUND_PAIR_IDS)
 
 rule all:
     input:
