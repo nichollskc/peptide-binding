@@ -82,8 +82,8 @@ def train_model(x_train, y_train, x_valid, y_valid, regularisation_weight, learn
 
     l2_loss = tf.losses.get_regularization_loss()
     loss += l2_loss
-    print("Loss shape: {}".format(loss.shape.as_list()))
-    print("Logits shape: {}".format(logits.shape.as_list()))
+    logging.info("Loss shape: {}".format(loss.shape.as_list()))
+    logging.info("Logits shape: {}".format(logits.shape.as_list()))
 
     loss_summary = tf.summary.scalar('loss_summary', tf.reduce_mean(loss))
     merged = tf.summary.merge_all()
@@ -102,7 +102,7 @@ def train_model(x_train, y_train, x_valid, y_valid, regularisation_weight, learn
         j = 0
         losses = []
         accuracies = []
-        while j + mb_size < x_train.shape[0]:
+        while j < x_train.shape[0]:
             _, computed_loss, computed_probs, summary = sess.run([train_op, loss, probs, merged],
                                                                  feed_dict={input_layer: x_train[
                                                                                          j:j + mb_size,
@@ -118,24 +118,34 @@ def train_model(x_train, y_train, x_valid, y_valid, regularisation_weight, learn
             losses.append(computed_loss)
             j += mb_size
             global_step += 1
-        print("Epoch {}, mean training loss: {:.3f}, mean training accuracy: {:.3f}".format(
-            i, np.mean(losses), np.mean(accuracies)))
+        logging.info("Epoch {}, mean training loss: {:.3f}, mean training accuracy: {:.3f}".format(
+            i, np.mean(np.vstack(losses)), np.mean(accuracies)))
 
-        y_train_probs = sess.run(probs, feed_dict={
-            input_layer: x_train,
-            training: False,
-        })
+        j = 0
+        y_train_probs_batched = []
+        while j < x_train.shape[0]:
+            y_train_probs_batched.append(sess.run(probs, feed_dict={
+                input_layer: x_train[j:j + mb_size, :],
+                training: False,
+            }))
+            j += mb_size
+        y_train_probs = np.vstack(y_train_probs_batched)
         y_train_pred = np.where(y_train_probs > 0.5, 1, 0).ravel()
         train_accuracy = compute_accuracy(y_train_probs, y_train)
-        print("Train accuracy: {:.3f}".format(train_accuracy))
+        logging.info("Train accuracy: {:.3f}".format(train_accuracy))
 
-        y_valid_probs = sess.run(probs, feed_dict={
-            input_layer: x_valid,
-            training: False,
-        })
+        j = 0
+        y_valid_probs_batched = []
+        while j < x_valid.shape[0]:
+            y_valid_probs_batched.append(sess.run(probs, feed_dict={
+                input_layer: x_valid[j:j + mb_size, :],
+                training: False,
+            }))
+            j += mb_size
+        y_valid_probs = np.vstack(y_valid_probs_batched)
         y_valid_pred = np.where(y_valid_probs > 0.5, 1, 0).ravel()
         valid_accuracy = compute_accuracy(y_valid_probs, y_valid)
-        print("Valid accuracy: {:.3f}".format(valid_accuracy))
+        logging.info("Valid accuracy: {:.3f}".format(valid_accuracy))
 
         _run.log_scalar("learning_train_accuracy", train_accuracy)
         _run.log_scalar("learning_validation_accuracy", valid_accuracy)
