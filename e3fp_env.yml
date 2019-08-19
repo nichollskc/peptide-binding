@@ -4,8 +4,10 @@ channels:
   - rdkit
   - keiserlab
   - defaults
+  - conda-forge
 dependencies:
   - backcall=0.1.0
+  - biopython=1.73
   - blas=1.0
   - bzip2=1.0.6
   - ca-certificates=2019.5.15
@@ -38,8 +40,10 @@ dependencies:
   - numpy=1.16.4
   - numpy-base=1.16.4
   - olefile=0.46
+  - openbabel::openbabel=2.4.1
   - openssl=1.0.2s
   - pandas=0.24.2
+  - parallel=20190522
   - parso=0.5.0
   - pcre=8.43
   - pexpect=4.7.0

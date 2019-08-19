@@ -8,26 +8,19 @@ import string
 import scripts.helper.construct_database as con_dat
 import scripts.helper.utils as utils
 
-def get_pdb_ids_file(filename):
-    with open(filename, 'r') as f:
-        files = f.readlines()
-    ids = [f.split("_")[0] for f in files]
-    return ids
 
 def get_all_pdb_ids():
+    """Returns a list of all PDB IDs for which we have a .bmat input file, i.e.
+    all PDB IDs that will be used in construction of datasets."""
     files = glob.glob("icMatrix/*_icMat.bmat")
     ids = [f.split("/")[1].split("_")[0] for f in files]
     return ids
 
-def get_random_pdb_ids(k=1000):
-    ids = get_all_pdb_ids()
 
-    random.seed(42)
-    num_to_sample = min(k, len(ids))
-    rand_ids = random.sample(ids, num_to_sample)
-    return rand_ids
-
-def group_ids(ids):
+def get_groups_of_ids(ids):
+    """Takes a list of IDs and separates them into groups. Returns a list of lists,
+    with each list being one group. Also returns a list of names of the groups.
+    Every ID will be placed in precisely one group."""
     groups = {}
     group_names = []
 
@@ -41,47 +34,20 @@ def group_ids(ids):
 
     return groups, group_names
 
-def group_name_to_csv_files(wildcards):
+
+def get_csv_filenames_from_groupname(wildcards):
+    """Given the name of a group of PDB IDs (given as a wildcard), return the
+    list of csv filenames corresponding to the members of this group."""
+    # Obtain the list of PDB IDs using the group name
     id_group = GROUPED_IDS[wildcards.group_name]
+
+    # Use snakemake's expand to convert this list into a list of the csv filenames
+    #   containing fragmented bound pairs
     return expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
 
-def group_name_to_sdf_files(wildcards):
-    id_group = GROUPED_BOUND_PAIR_IDS[wildcards.group_name]
-    return expand('processed/sdfs/{bound_pair_id}.sdf', bound_pair_id=id_group)
-
-def get_bound_pair_sdf_filenames(wildcards):
-    bound_pair_ids = get_all_bound_pair_ids(f"datasets/{wildcards.full_dataset}/bound_pairs.csv")
-    return [f"processed/sdfs/{bound_pair_id}.sdf" for bound_pair_id in bound_pair_ids]
-
-def get_all_bound_pair_ids(bound_pairs_df_filename):
-    prefix, extension = os.path.splitext(bound_pairs_df_filename)
-    ids_filename = prefix + '.ids.txt'
-    try:
-        with open(ids_filename, 'r') as f:
-            raw_bound_pair_ids = f.readlines()
-            bound_pair_ids = [line.strip() for line in raw_bound_pair_ids]
-    except FileNotFoundError:
-        df = con_dat.read_bound_pairs(bound_pairs_df_filename)
-        bound_pair_ids = [utils.get_bound_pair_id_from_row(row) for ind, row in df.iterrows()]
-        with open(ids_filename, 'w') as f:
-            f.write('\n'.join(bound_pair_ids))
-
-    return bound_pair_ids
-
-def combine_all_bound_pair_ids():
-    filenames = expand('datasets/beta/small/{size}/{data_group}/bound_pairs.csv',
-                                   data_group=BETA_DATA_GROUPS,
-                                   size=['10000']) +\
-                expand('datasets/beta/thresholds/{threshold}/{data_group}/bound_pairs.csv',
-                       data_group=THRESHOLD_GROUPS,
-                       threshold=ALIGNMENT_THRESHOLDS)
-    all_lists = [get_all_bound_pair_ids(file) for file in filenames]
-    combined = itertools.chain.from_iterable(all_lists)
-    no_duplicates = list(set(combined))
-    return no_duplicates
 
 PDB_IDS = get_all_pdb_ids()
-GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
+GROUPED_IDS, GROUP_NAMES = get_groups_of_ids(PDB_IDS)
 
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['bag_of_words', 'padded_meiler_onehot', 'product_bag_of_words']
@@ -94,9 +60,6 @@ BETA_DATA_GROUP_PROPORTIONS = [60, 20, 10, 10]
 
 THRESHOLD_GROUPS = ['training', 'validation']
 ALIGNMENT_THRESHOLDS = [0, -2, -4, -8]
-
-BOUND_PAIR_IDS = combine_all_bound_pair_ids()
-GROUPED_BOUND_PAIR_IDS, GROUP_BOUND_PAIR_NAMES = group_ids(BOUND_PAIR_IDS)
 
 rule all:
     input:
@@ -163,7 +126,7 @@ rule aggregate_bound_pairs:
     #   by placing them in the same rule group, and forcing aggregation in
     #   this rule
     input:
-        group_name_to_csv_files
+        get_csv_filenames_from_groupname
     output:
         touch('processed/checks/{group_name}')
     group:
@@ -301,46 +264,9 @@ rule generate_representations:
          '--output_file {output.outfile} --representation {params.representation} '\
          '--fragment_lengths_file {input.fragment_lengths} --verbosity 3 2>&1 | tee {log}'
 
-rule generate_pdb:
-    params:
-         bound_pair_id='{bound_pair_id}'
-    group:
-        'e3fp'
-    output:
-         'processed/pdbs/{bound_pair_id}.pdb'
-    shell:
-         'python3 -c "import scripts.helper.query_biopython as bio; '\
-         'bio.write_bound_pair_to_pdb_wrapped(\'{params.bound_pair_id}\')" '\
-         '>> logs/generate_pdb.log 2>&1'
-
-rule convert_pdb_sdf:
-    input:
-         'processed/pdbs/{bound_pair_id}.pdb'
-    group:
-        'e3fp'
-    output:
-         'processed/sdfs/{bound_pair_id}.sdf'
-    shell:
-         'obabel -ipdb {input} -osdf -O {output} >> logs/convert_pdb_sdf.log 2>&1'
-
-rule aggregate_pdb_generation:
-# This rule just forces the convert_pdb_sdf rules to run in batches
-    #   by placing them in the same rule group, and forcing aggregation in
-    #   this rule
-    input:
-        group_name_to_sdf_files
-    output:
-        touch('processed/sdf_checks/{group_name}')
-    group:
-        'e3fp'
-
-rule all_sdf_files:
-    input:
-         group_names=expand('processed/sdf_checks/{group_name}', group_name=GROUP_BOUND_PAIR_NAMES)
-
 rule generate_e3fp_fingerprints:
     input:
-         sdf_filenames=get_bound_pair_sdf_filenames
+         dataset='datasets/{full_dataset}/bound_pairs.csv'
     params:
          dataset='{full_dataset}'
     log:
@@ -349,5 +275,6 @@ rule generate_e3fp_fingerprints:
          dataset='datasets/{full_dataset}/data_fingerprints.npz'
     conda:
          'e3fp_env.yml'
-    script:
-         'scripts/snakemake_generate_structure_representations.py'
+    shell:
+        'python3 scripts/generate_fingerprint_representations.py --input {input.dataset} '\
+        '--outfile {output.dataset} --verbosity 3 2>&1 | tee {log}'

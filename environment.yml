@@ -9,6 +9,7 @@ dependencies:
   - coverage=4.5.3
   - matplotlib=3.1.0
   - numpy=1.16.4
+  - openbabel::openbabel=2.4.1
   - pandas=0.24.2
   - parallel=20190522
   - pylint=2.3.1
