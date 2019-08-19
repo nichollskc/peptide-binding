@@ -1,17 +1,17 @@
-"""Sacred wrapper around logistic regression training and evaluation."""
+"""Sacred wrapper around random forest training and evaluation."""
 # Since this gets wrapped by sacred, pylint will incorrectly identify variables
 #   as being unused and not being given to functions.
 # pylint: disable=unused-variable,no-value-for-parameter
+import logging
 import os
 
 import joblib
-import numpy as np
 from sacred import Experiment
 from sacred.observers import MongoObserver
 
 import scripts.helper.models as models
 
-experiment_name = "logistic_regression"
+experiment_name = "random_forest_single"
 
 ex = Experiment(experiment_name)
 ex.observers.append(MongoObserver.create(
@@ -26,14 +26,9 @@ def cfg():
     representation = "bag_of_words"
     dataset = "beta/rand"
     seed = 4213
-    lr_params = {
-        'alpha': np.geomspace(1e-4, 1, 10),  # Regularisation strength
-        'l1_ratio': np.linspace(0, 1, 11),  # Ratio between L1 and L2 regularisation
-                                            # l1_ratio = 0 => L2 penalty
-                                            # l1_ratio = 1 => L1 penalty,
-    }
-    num_param_sets = 15
-    num_folds = 10
+    n_estimators = 100
+    max_features = 'sqrt'
+    max_depth = 10
 
 
 @ex.capture
@@ -49,21 +44,13 @@ def get_data(dataset, representation):
 
 
 @ex.capture
-def train_model_random_search(data, lr_params, num_folds, num_param_sets):
-    """Train a series of models, testing out random sets of parameters
-    from lr_params. Will use cross-validation with num_folds.
+def train_model(data, n_estimators, max_features, max_depth):
+    """Train a series of Random Forests with the given parameters."""
+    model = models.train_random_forest(data=data,
+                                       n_estimators=n_estimators,
+                                       max_features=max_features,
+                                       max_depth=max_depth)
 
-    Prints out summary information from the search and returns the estimator
-    which had best cross-validation score."""
-    search = models.random_search_logistic_regression(data=data,
-                                                      param_dist=lr_params,
-                                                      num_folds=num_folds,
-                                                      num_param_sets=num_param_sets)
-
-    models.summarise_search(search, num_results=num_param_sets, full_print=True)
-
-    model = search.best_estimator_
-    model.fit(data['X_train'], data['y_train'])
     return model
 
 
@@ -72,24 +59,34 @@ def run(_run):
     """Main method that will be wrapped by sacred. Loads data, trains and prints
     out summaries."""
     save_dir = construct_save_dir()
+    logging.info(f"Save directory is {save_dir}")
 
+    logging.info(f"Loading data")
     data = get_data()  # parameters injected automatically
+    logging.info(f"Loaded data")
 
     _run.log_scalar("X_train_size", data['X_train'].shape[0])
     _run.log_scalar("X_val_size", data['X_val'].shape[0])
-    model = train_model_random_search(data)
 
+    logging.info(f"Training model")
+    model = train_model(data)
+    logging.info(f"Model parameters:\n{model.get_params()}")
+
+    logging.info(f"Saving model")
     model_filename = os.path.join(save_dir, "trained_model.joblib")
     joblib.dump(model, model_filename)
 
+    logging.info(f"Evaluating model performance")
     short_metrics, long_metrics, plots = models.evaluate_model(model,
                                                                data,
                                                                save_dir)
 
+    logging.info(f"Saving metrics to sacred")
     # Log the single number metrics using sacred
     for key, value in short_metrics.items():
         _run.log_scalar(key, value)
 
+    logging.info(f"Saving metrics to file")
     # Combine the two metrics dictionaries into one and save as a json file
     full_metrics = short_metrics.copy()
     full_metrics.update(long_metrics)
@@ -97,7 +94,12 @@ def run(_run):
     metrics_filename = os.path.join(save_dir, "metrics.json")
     models.save_to_json(full_metrics, metrics_filename)
 
+    parameters_filename = os.path.join(save_dir, "parameters.json")
+    models.save_to_json(model.get_params(), parameters_filename)
+
+    logging.info(f"Saving artifacts to sacred")
     ex.add_artifact(metrics_filename)
+    ex.add_artifact(parameters_filename)
     for plot_file in plots.values():
         ex.add_artifact(plot_file)
 

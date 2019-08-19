@@ -81,8 +81,7 @@ else:
     logging.error(f"Representation type {args.representation} not recognised. Aborting.")
     raise ValueError(f"Representation type {args.representation} not recognised.")
 
-logging.info(f"Representations generated of shape {representation_matrix.shape}:\n"
-             f"{representation_matrix}.")
+logging.info(f"Representations generated of shape {representation_matrix.shape}.")
 
 np.save(args.output_file, representation_matrix)
 

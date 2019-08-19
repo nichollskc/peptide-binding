@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from scipy import stats
+import scipy.sparse
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 import sklearn.metrics as metrics
 
@@ -35,7 +36,7 @@ def save_to_json(object_to_save, filename):
         json.dump(object_to_save, f, cls=NumpyEncoder, indent=4)
 
 
-def create_experiment_save_dir(name):
+def create_experiment_save_dir_unique(name):
     """Finds a unique folder to save artifacts for a given experiment."""
     filename = os.path.join(MODELS_DIR, name)
     i = 1
@@ -52,18 +53,40 @@ def create_experiment_save_dir(name):
     return unique_dir
 
 
+def create_experiment_save_dir(dataset, representation, experiment_name):
+    save_dir = os.path.join(MODELS_DIR, dataset, representation, experiment_name)
+    try:
+        os.makedirs(save_dir)
+    except FileExistsError:
+        # directory already exists
+        pass
+    return save_dir
+
+
 def load_data(dataset, representation):
     """Loads data corresponding to a particular type of representation."""
     logging.info(f"Loading data from dataset {dataset}, representation {representation}")
-    X_train = np.load(f"datasets/{dataset}/training/data_{representation}.npy")
-    y_train = np.load(f"datasets/{dataset}/training/labels.npy")
 
-    logging.info(f"Loaded training data")
+    if representation == "fingerprints":
+        X_train = scipy.sparse.load_npz(f"datasets/{dataset}/training/data_{representation}.npz").toarray()
+        y_train = np.load(f"datasets/{dataset}/training/labels.npy")
 
-    X_val = np.load(f"datasets/{dataset}/validation/data_{representation}.npy")
-    y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
+        logging.info(f"Loaded training data")
 
-    logging.info(f"Loaded validation data")
+        X_val = scipy.sparse.load_npz(f"datasets/{dataset}/validation/data_{representation}.npz").toarray()
+        y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
+
+        logging.info(f"Loaded validation data")
+    else:
+        X_train = np.load(f"datasets/{dataset}/training/data_{representation}.npy")
+        y_train = np.load(f"datasets/{dataset}/training/labels.npy")
+
+        logging.info(f"Loaded training data")
+
+        X_val = np.load(f"datasets/{dataset}/validation/data_{representation}.npy")
+        y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
+
+        logging.info(f"Loaded validation data")
 
     data = {
         'representation': representation,
@@ -95,7 +118,7 @@ def random_search_random_forest(data, param_dist, num_folds=10, num_param_sets=1
     rf_model = RandomForestClassifier()
     search = RandomizedSearchCV(estimator=rf_model,
                                 param_distributions=param_dist,
-                                n_jobs=-1,
+                                n_jobs=1,
                                 cv=num_folds,
                                 return_train_score=True,
                                 n_iter=num_param_sets,
@@ -108,9 +131,9 @@ def random_search_logistic_regression(data, param_dist, num_folds=10, num_param_
     """Performs a grid search to find the optimal hyperparameters for a logistic regression
     using the training data in the data object. Uses cross-validation on all the training
     data."""
-    clf = LogisticRegression(solver='saga',
-                             penalty='elasticnet',
-                             n_jobs=-1)
+    clf = SGDClassifier(penalty='elasticnet',
+                        loss='log',
+                        n_jobs=1)
     search = RandomizedSearchCV(estimator=clf,
                                 param_distributions=param_dist,
                                 cv=num_folds,
@@ -129,16 +152,16 @@ def summarise_search(search, num_results=10, full_print=False):
     sorted_indices = sorted(zip(ranks, range(len(ranks))))
     total_runs = len(ranks)
 
-    print(f"Total runs: {total_runs}")
+    logging.info(f"Total runs: {total_runs}")
 
     if full_print:
-        print(results)
+        logging.info(results)
 
     for rank, index in sorted_indices[:num_results]:
-        print(f"Ranked {rank}")
-        print(f"Time to fit: {results['mean_fit_time'][index]:.2f}s")
-        print(f"CV accuracy score: {results['mean_test_score'][index]:.4f}")
-        print(f"Parameters: {results['params'][index]}")
+        logging.info(f"Ranked {rank}")
+        logging.info(f"Time to fit: {results['mean_fit_time'][index]:.2f}s")
+        logging.info(f"CV accuracy score: {results['mean_test_score'][index]:.4f}")
+        logging.info(f"Parameters: {results['params'][index]}")
 
 
 def grid_search_random_forest(data, param_grid, num_folds=10):
@@ -152,18 +175,7 @@ def grid_search_random_forest(data, param_grid, num_folds=10):
 
 
 # pylint: disable-msg=too-many-locals
-def evaluate_model(model, data, savedir):
-    """Uses the model to predict for the given data, and evaluates the model
-    according to a number of metrics, returning these in a dictionary."""
-    logging.info(f"Getting predictions for validation set and training set")
-    y_pred = model.predict(data['X_val'])
-    y_probs = model.predict_proba(data['X_val'])[:, 1]
-    y_true = data['y_val']
-
-    y_train_pred = model.predict(data['X_train'])
-    y_train_probs = model.predict_proba(data['X_train'])[:, 1]
-    y_train = data['y_train']
-
+def evaluate_predictions(y_pred, y_probs, y_true, y_train_pred, y_train_probs, y_train, savedir):
     logging.info(f"Calculating accuracy metrics")
     precision, recall, _thresholds_pr = metrics.precision_recall_curve(y_true, y_probs)
     fpr, tpr, _thresholds_roc = metrics.roc_curve(y_true, y_probs)
@@ -241,3 +253,24 @@ def evaluate_model(model, data, savedir):
     plt.savefig(plot_filenames['pr_curve'])
 
     return model_metrics, longer_model_metrics, plot_filenames
+
+
+def evaluate_model(model, data, savedir):
+    """Uses the model to predict for the given data, and evaluates the model
+    according to a number of metrics, returning these in a dictionary."""
+    logging.info(f"Getting predictions for validation set and training set")
+    y_pred = model.predict(data['X_val'])
+    y_probs = model.predict_proba(data['X_val'])[:, 1]
+    y_true = data['y_val']
+
+    y_train_pred = model.predict(data['X_train'])
+    y_train_probs = model.predict_proba(data['X_train'])[:, 1]
+    y_train = data['y_train']
+
+    return evaluate_predictions(y_pred,
+                                y_probs,
+                                y_true,
+                                y_train_pred,
+                                y_train_probs,
+                                y_train,
+                                savedir)

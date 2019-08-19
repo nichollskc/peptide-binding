@@ -3,11 +3,11 @@
 # Runs tests and returns non-zero exit code if they failed
 
 # Run pylint on all .py files and check no errors
-find . -iname "scripts/*.py" | xargs pylint --rcfile=.pylintrc
+find ./scripts -name "*.py" | xargs pylint --rcfile=.pylintrc
 PYLINT_RESULT=$?
 
 # Test prospective commit
-$(coverage run -m unittest discover -k test_short)
+$(coverage run --source=scripts/helper -m unittest discover -s tests -k test_short)
 TEST_RESULT=$?
 
 COVERAGE_RESULT=0

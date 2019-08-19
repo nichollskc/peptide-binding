@@ -36,6 +36,12 @@ def cfg():
 
 
 @ex.capture
+def construct_save_dir(dataset, representation):
+    save_dir = models.create_experiment_save_dir(dataset, representation, experiment_name)
+    return save_dir
+
+
+@ex.capture
 def get_data(dataset, representation):
     """Get data corresponding to representation."""
     return models.load_data(dataset, representation)
@@ -64,18 +70,19 @@ def train_model_random_search(data, rf_params, num_folds, num_param_sets):
 def run(_run):
     """Main method that will be wrapped by sacred. Loads data, trains and prints
     out summaries."""
-    save_dir = models.create_experiment_save_dir(experiment_name)
+    save_dir = construct_save_dir()
     logging.info(f"Save directory is {save_dir}")
 
     logging.info(f"Loading data")
     data = get_data()   # parameters injected automatically
     logging.info(f"Loaded data")
 
-    _run.log_scalar("X_train_size", len(data['X_train']))
-    _run.log_scalar("X_val_size", len(data['X_val']))
+    _run.log_scalar("X_train_size", data['X_train'].shape[0])
+    _run.log_scalar("X_val_size", data['X_val'].shape[0])
 
     logging.info(f"Training model")
     model = train_model_random_search(data)
+    logging.info(f"Model parameters:\n{model.get_params()}")
 
     logging.info(f"Saving model")
     model_filename = os.path.join(save_dir, "trained_model.joblib")
@@ -99,8 +106,12 @@ def run(_run):
     metrics_filename = os.path.join(save_dir, "metrics.json")
     models.save_to_json(full_metrics, metrics_filename)
 
+    parameters_filename = os.path.join(save_dir, "parameters.json")
+    models.save_to_json(model.get_params(), parameters_filename)
+
     logging.info(f"Saving artifacts to sacred")
     ex.add_artifact(metrics_filename)
+    ex.add_artifact(parameters_filename)
     for plot_file in plots.values():
         ex.add_artifact(plot_file)
 

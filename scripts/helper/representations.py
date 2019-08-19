@@ -3,6 +3,7 @@ Some code reused from these files:
 https://github.com/eliberis/parapred/blob/d13600a3d5697ebd5796576e1d6166aa1a519933/parapred/data_provider.py
 https://github.com/eliberis/parapred/blob/d13600a3d5697ebd5796576e1d6166aa1a519933/parapred/structure_processor.py"""
 import numpy as np
+import scipy.sparse
 import tensorflow as tf
 
 ################################################################################
@@ -172,7 +173,7 @@ def generate_representation_all(bound_pairs_df, generate_func):
     generate_representation_all(df,
                                 lambda r: generate_padded_onehot_meiler(r, 4, 12))"""
     example_rep = generate_func(bound_pairs_df.iloc[0])
-    representations = np.zeros((len(bound_pairs_df), len(example_rep)))
+    representations = scipy.sparse.lil_matrix((len(bound_pairs_df), len(example_rep)))
     for ind in range(len(bound_pairs_df)):
         representation = generate_func(bound_pairs_df.iloc[ind])
         representations[ind] = representation

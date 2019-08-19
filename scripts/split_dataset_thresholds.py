@@ -12,7 +12,8 @@ import pandas as pd
 
 import scripts.helper.construct_database as con_dat
 import scripts.helper.log_utils as log_utils
-import scripts.split_dataset_random as split_dataset_random
+import scripts.helper.utils as utils
+import scripts.cluster_sequences as cluster
 
 parser = argparse.ArgumentParser(description="Given a list of CDR-like fragments and the "
                                              "target fragments they interact with, split the "
@@ -101,9 +102,20 @@ for threshold, label_files, data_files in zip(thresholds,
     logging.info(f"Splitting randomly into different data groups "
                  f"in proportions {group_proportions}")
 
-    split_dataset_random.main(combined_df,
-                              group_proportions,
-                              label_files,
-                              data_files,
-                              seed=args.seed)
+    grouped_dfs_clusters = cluster.split_dataset_clustered(combined_df,
+                                                           group_proportions,
+                                                           seed=args.seed)
+
+    for df, label_file, data_file, intended_proportion in zip(grouped_dfs_clusters,
+                                                              label_files,
+                                                              data_files,
+                                                              group_proportions):
+        logging.info(f"Saving data frame of size {len(df)} to file '{data_file}', "
+                     f"saving labels to file '{label_file}'.")
+        logging.info(f"Intended proportion is {intended_proportion}, actual proportion "
+                     f"is {len(df) / len(combined_df)}.")
+        utils.save_df_csv_quoted(df, data_file)
+        labels = np.array(df['binding_observed'])
+        np.save(label_file, labels)
+
     logging.info(f"Done")

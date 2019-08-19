@@ -1,30 +1,26 @@
 import glob
+import itertools
+import os
 import random
 import re
 import string
 
+import scripts.helper.construct_database as con_dat
 import scripts.helper.utils as utils
 
-def get_pdb_ids_file(filename):
-    with open(filename, 'r') as f:
-        files = f.readlines()
-    ids = [f.split("_")[0] for f in files]
-    return ids
 
 def get_all_pdb_ids():
+    """Returns a list of all PDB IDs for which we have a .bmat input file, i.e.
+    all PDB IDs that will be used in construction of datasets."""
     files = glob.glob("icMatrix/*_icMat.bmat")
     ids = [f.split("/")[1].split("_")[0] for f in files]
     return ids
 
-def get_random_pdb_ids(k=1000):
-    ids = get_all_pdb_ids()
 
-    random.seed(42)
-    num_to_sample = min(k, len(ids))
-    rand_ids = random.sample(ids, num_to_sample)
-    return rand_ids
-
-def group_ids(ids):
+def get_groups_of_ids(ids):
+    """Takes a list of IDs and separates them into groups. Returns a list of lists,
+    with each list being one group. Also returns a list of names of the groups.
+    Every ID will be placed in precisely one group."""
     groups = {}
     group_names = []
 
@@ -38,13 +34,20 @@ def group_ids(ids):
 
     return groups, group_names
 
-def group_name_to_csv_files(wildcards):
+
+def get_csv_filenames_from_groupname(wildcards):
+    """Given the name of a group of PDB IDs (given as a wildcard), return the
+    list of csv filenames corresponding to the members of this group."""
+    # Obtain the list of PDB IDs using the group name
     id_group = GROUPED_IDS[wildcards.group_name]
+
+    # Use snakemake's expand to convert this list into a list of the csv filenames
+    #   containing fragmented bound pairs
     return expand('processed/bound_pairs/fragmented/individual/{pdb_id}.csv', pdb_id=id_group)
 
-PDB_IDS = get_all_pdb_ids()
 
-GROUPED_IDS, GROUP_NAMES = group_ids(PDB_IDS)
+PDB_IDS = get_all_pdb_ids()
+GROUPED_IDS, GROUP_NAMES = get_groups_of_ids(PDB_IDS)
 
 LABELS = ['positive', 'negative']
 DATA_TYPES = ['bag_of_words', 'padded_meiler_onehot', 'product_bag_of_words']
@@ -66,25 +69,34 @@ rule all:
                data_type=DATA_TYPES),
         expand('datasets/beta/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
-
         # Smaller subsets of the dataset
         expand('datasets/beta/small/10000/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
+        expand('datasets/beta/small/10000/{data_group}/data_fingerprints.npz',
+               data_group=BETA_DATA_GROUPS),
         expand('datasets/beta/small/10000/{data_group}/labels.npy',
+               data_group=BETA_DATA_GROUPS),
+        expand('datasets/beta/small/100000/{data_group}/data_{data_type}.npy',
+               data_group=BETA_DATA_GROUPS,
+               data_type=DATA_TYPES),
+        expand('datasets/beta/small/100000/{data_group}/data_fingerprints.npz',
+               data_group=BETA_DATA_GROUPS),
+        expand('datasets/beta/small/100000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
         expand('datasets/beta/small/1000000/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,
                data_type=DATA_TYPES),
+        expand('datasets/beta/small/1000000/{data_group}/data_fingerprints.npz',
+               data_group=BETA_DATA_GROUPS),
         expand('datasets/beta/small/1000000/{data_group}/labels.npy',
                data_group=BETA_DATA_GROUPS),
-
         # Different versions of the dataset at different threshold values
-        expand('datasets/beta/thresholds/{threshold}/{data_group}/data_{data_type}.npy',
+        expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/data_{data_type}.npy',
                data_group=THRESHOLD_GROUPS,
                data_type=DATA_TYPES,
                threshold=ALIGNMENT_THRESHOLDS),
-        expand('datasets/beta/thresholds/{threshold}/{data_group}/labels.npy',
+        expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/labels.npy',
                data_group=THRESHOLD_GROUPS,
                threshold=ALIGNMENT_THRESHOLDS),
 
@@ -114,7 +126,7 @@ rule aggregate_bound_pairs:
     #   by placing them in the same rule group, and forcing aggregation in
     #   this rule
     input:
-        group_name_to_csv_files
+        get_csv_filenames_from_groupname
     output:
         touch('processed/checks/{group_name}')
     group:
@@ -223,10 +235,10 @@ rule split_dataset_thresholds:
     log:
         'logs/split_dataset_alignment_thresholds.log'
     output:
-        data_filenames=expand('datasets/beta/thresholds/{threshold}/{data_group}/bound_pairs.csv',
+        data_filenames=expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/bound_pairs.csv',
                               threshold=ALIGNMENT_THRESHOLDS,
                               data_group=THRESHOLD_GROUPS),
-        label_filenames=expand('datasets/beta/thresholds/{threshold}/{data_group}/labels.npy',
+        label_filenames=expand('datasets/beta/thresholds/clust/{threshold}/{data_group}/labels.npy',
                                threshold=ALIGNMENT_THRESHOLDS,
                                data_group=THRESHOLD_GROUPS)
     shell:
@@ -251,3 +263,18 @@ rule generate_representations:
          'python3 scripts/generate_representations.py --input {input.dataset} '\
          '--output_file {output.outfile} --representation {params.representation} '\
          '--fragment_lengths_file {input.fragment_lengths} --verbosity 3 2>&1 | tee {log}'
+
+rule generate_e3fp_fingerprints:
+    input:
+         dataset='datasets/{full_dataset}/bound_pairs.csv'
+    params:
+         dataset='{full_dataset}'
+    log:
+         'logs/generate_representations/{full_dataset}_e3fp_fingerprints.log'
+    output:
+         dataset='datasets/{full_dataset}/data_fingerprints.npz'
+    conda:
+         'e3fp_env.yml'
+    shell:
+        'python3 scripts/generate_fingerprint_representations.py --input {input.dataset} '\
+        '--outfile {output.dataset} --verbosity 3 2>&1 | tee {log}'
