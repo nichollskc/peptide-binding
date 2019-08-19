@@ -56,9 +56,17 @@ def generate_fingerprints_parallel(sdf_files, threads):
     return database
 
 
-def convert_pdb_to_sdf(pdb_filenames):
+def get_sdf_filename_from_pdb_filename(pdb_filename, sdf_filename_root):
+    pdb_filename_basename = os.path.basename(pdb_filename)
+    bound_pair_id = os.path.splitext(pdb_filename_basename)[0]
+    sdf_filename = os.path.join(sdf_filename_root, bound_pair_id) + '.sdf'
+    return sdf_filename
+
+
+def convert_pdb_to_sdf(pdb_filenames, sdf_filename_root):
     """Convert all the PDB files in the list to SDF files."""
-    sdf_filenames = [pdb_file + ".sdf" for pdb_file in pdb_filenames]
+    sdf_filenames = [get_sdf_filename_from_pdb_filename(pdb_file, "processed/sdfs")
+                     for pdb_file in pdb_filenames]
     lines = [' '.join(pair) + '\n' for pair in zip(pdb_filenames, sdf_filenames)
              if not os.path.exists(pair[1])]
     with open(".tmp.pdb_sdf_filenames.txt", "w") as f:
@@ -79,11 +87,24 @@ def main(df_filename, outfile):
     logging.info(f"Reading in bound pairs data frame.")
     bound_pairs_df = pd.read_csv(df_filename)
 
+    logging.info("Checking folder already created for PDB files and SDF files.")
+    try:
+        os.makedirs("processed/pdbs")
+    except FileExistsError:
+        # directory already exists
+        pass
+
+    try:
+        os.makedirs("processed/sdfs")
+    except FileExistsError:
+        # directory already exists
+        pass
+
     logging.info(f"Generating PDB files.")
     pdb_filenames = qbp.write_all_bound_pairs_pdb(bound_pairs_df)
 
     logging.info(f"Converting PDB files to SD files.")
-    sdf_filenames = convert_pdb_to_sdf(pdb_filenames)
+    sdf_filenames = convert_pdb_to_sdf(pdb_filenames, "processed/sdfs")
 
     logging.info(f"Generating fingerprints for {len(sdf_filenames)} SD files.")
     database = generate_fingerprints_parallel(sdf_filenames, None)

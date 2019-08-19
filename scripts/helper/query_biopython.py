@@ -480,7 +480,7 @@ def write_all_bound_pairs_pdb(bound_pairs_df):
             write_bound_pair_to_pdb(row, filename)
         filenames.append(filename)
 
-        if len(filenames) % 10 == 0:
+        if len(filenames) % 100 == 0:
             logging.info(f"Saved {len(filenames)} PDB files so far, last was {filename}")
 
     return filenames
