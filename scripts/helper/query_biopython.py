@@ -471,16 +471,20 @@ def write_all_bound_pairs_pdb(bound_pairs_df):
     """Write every row in the data frame to a PDB file, as in write_bound_pair_to_pdb.
     Returns a list of all the files written."""
     filenames = []
+    generated = 0
     for ind, row in bound_pairs_df.iterrows():
         bound_pair_id = utils.get_bound_pair_id_from_row(row)
         filename = f"processed/pdbs/{bound_pair_id}.pdb"
         if os.path.exists(filename) and os.path.getsize(filename) > 0:
-            logging.info(f"PDB file '{filename}' already exists, skipping this bound pair.")
+            logging.debug(f"PDB file '{filename}' already exists, skipping this bound pair.")
         else:
             write_bound_pair_to_pdb(row, filename)
+            generated += 1
         filenames.append(filename)
 
         if len(filenames) % 100 == 0:
-            logging.info(f"Saved {len(filenames)} PDB files so far, last was {filename}")
+            logging.info(f"Saved {len(filenames)} PDB files so far, last was {filename}. "
+                         f"{generated} have been generated in this run, "
+                         f"{len(filenames) - generated} were already present.")
 
     return filenames

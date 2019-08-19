@@ -75,7 +75,7 @@ def convert_pdb_to_sdf(pdb_filenames, sdf_filename_root):
     logging.debug(f"Full command is {full_cmd}")
     command = subprocess.run(full_cmd.split(" "))
     if command.stderr:
-        logging.warning(f"Command to convert PDB files to SD files produced error output:"
+        logging.debug(f"Command to convert PDB files to SD files produced error output:"
                         f"\n{command.stderr.decode('utf-8')}")
     logging.info(f"PDB files converted to SD files.")
     return sdf_filenames
