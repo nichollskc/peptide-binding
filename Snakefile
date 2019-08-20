@@ -108,20 +108,21 @@ rule all:
 
 rule test:
     input:
-        # Small subset of data
-        expand('datasets/beta/small/100/{data_group}/data_{data_type}.npy',
-               data_group=BETA_DATA_GROUPS,
+        # Representations of one of the small subsets (test set only)
+        expand('datasets/beta/small/100/clust/test/data_{data_type}.npy',
                data_type=DATA_TYPES),
+        # Train, validation and test for fingerprints, since we will train on this
+        #   representation
         expand('datasets/beta/small/100/{data_group}/data_fingerprints.npz',
-               data_group=BETA_DATA_GROUPS),
+               data_group=['clust/training', 'clust/validation']),
         expand('datasets/beta/small/100/{data_group}/labels.npy',
-               data_group=BETA_DATA_GROUPS),
-        # Different versions of the dataset at different threshold values
-        expand('datasets/beta/thresholds/clust/-2/{data_group}/data_{data_type}.npy',
-               data_group=THRESHOLD_GROUPS,
-               data_type=DATA_TYPES),
-        expand('datasets/beta/thresholds/clust/-2/{data_group}/labels.npy',
+               data_group=['clust/training', 'clust/validation']),
+        # Different version of the dataset at different threshold value
+        expand('datasets/beta/thresholds/clust/-2/{data_group}/bound_pairs.csv',
                data_group=THRESHOLD_GROUPS),
+        # Simple random splitting of dataset
+        expand('datasets/alpha/{data_group}/bound_pairs.csv',
+               data_group=ALPHA_DATA_GROUPS),
 
 rule find_all_bound_pairs:
     input:
