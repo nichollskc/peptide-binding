@@ -13,6 +13,7 @@ dependencies:
   - ca-certificates=2019.5.15
   - cairo=1.14.12
   - certifi=2019.6.16
+  - coverage=4.5.3
   - decorator=4.4.0
   - e3fp=1.1
   - fontconfig=2.13.0

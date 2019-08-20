@@ -33,17 +33,23 @@ install:
 
 script:
   - source activate rationaldesign
-  - coverage run --source=scripts/helper -m unittest discover -s tests
+  # Run the tests, checking for coverage. Exclude the explore_data script as it is just
+  #   there for exploratory analysis. The find_unique_bound_pairs script is called
+  #   internally through snakemake so we can't run coverage on it.
+  - coverage run --source=scripts --omit='*'find_unique_bound_pairs.py,scripts/explore_data.py -m unittest discover -s tests
   - coverage report -m
   # Test the snakemake workflow with qsub to check jobs are grouped properly
   - KCN_CURRENT_DIR=$(pwd) snakemake --cluster "qsub -q sl -V" --jobs 2 --dryrun --printshellcmds --use-conda
-  - KCN_CURRENT_DIR=$(pwd) snakemake --printshellcmds --use-conda datasets/beta/small/100/clust/{training,validation,test}/data_fingerprints.npz
+  # Run the snakemake command using coverage to run all the python scripts where possible
+  - KCN_CURRENT_DIR=$(pwd) PEPBIND_PYTHON="coverage run -a" snakemake --printshellcmds --use-conda test
   - python3 setup.py install
   - pip install sacred
-  - python3 scripts/training/logistic_regression.py with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
-  - python3 scripts/training/random_forest.py with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
-  - python3 scripts/training/random_forest_single.py with representation='fingerprints' dataset='beta/small/100/clust'
-  - python3 scripts/training/neural_network.py with representation='fingerprints' dataset='beta/small/100/clust' epochs=2
+  # Train predictive models on one of the datasets, using parameters that give quick runs
+  - coverage run -a scripts/training/logistic_regression.py with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
+  - coverage run -a scripts/training/random_forest.py with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
+  - coverage run -a scripts/training/random_forest_single.py with representation='fingerprints' dataset='beta/small/100/clust'
+  - coverage run -a scripts/training/neural_network.py with representation='fingerprints' dataset='beta/small/100/clust' epochs=2
+  - coverage report -m
 
 env:
   global:
