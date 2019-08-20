@@ -3,14 +3,10 @@ removes duplicated pairs from the list."""
 import argparse
 import logging
 import json
-# pylint: disable=wrong-import-position
-import os
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
-import scripts.helper.construct_database as con_dat
-import scripts.helper.log_utils as log_utils
-import scripts.helper.utils as utils
+import peptidebinding.helper.construct_database as con_dat
+import peptidebinding.helper.log_utils as log_utils
+import peptidebinding.helper.utils as utils
 
 def main(bound_pairs_tables, fragment_lengths_out, output_file):
     """Given a list of CDR-like fragments and the target fragments they interact with,

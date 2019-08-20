@@ -5,8 +5,14 @@ import random
 import re
 import string
 
-import scripts.helper.construct_database as con_dat
-import scripts.helper.utils as utils
+import peptidebinding.helper.construct_database as con_dat
+import peptidebinding.helper.utils as utils
+
+# The PEPBIND_PYTHON variable allows us to decide which command to use to run the
+#   python scripts when calling snakemake. For example we can use
+#   PEPBIND_PYTHON='coverage run -a -m' to collect code coverage information.
+if 'PEPBIND_PYTHON' not in os.environ:
+    os.environ['PEPBIND_PYTHON'] = 'python3 -m'
 
 
 def get_all_pdb_ids():
@@ -100,6 +106,24 @@ rule all:
                data_group=THRESHOLD_GROUPS,
                threshold=ALIGNMENT_THRESHOLDS),
 
+rule test:
+    input:
+        # Representations of one of the small subsets (test set only)
+        expand('datasets/beta/small/100/clust/test/data_{data_type}.npy',
+               data_type=DATA_TYPES),
+        # Train, validation and test for fingerprints, since we will train on this
+        #   representation
+        expand('datasets/beta/small/100/{data_group}/data_fingerprints.npz',
+               data_group=['clust/training', 'clust/validation']),
+        expand('datasets/beta/small/100/{data_group}/labels.npy',
+               data_group=['clust/training', 'clust/validation']),
+        # Different version of the dataset at different threshold value
+        expand('datasets/beta/thresholds/clust/-2/{data_group}/bound_pairs.csv',
+               data_group=THRESHOLD_GROUPS),
+        # Simple random splitting of dataset
+        expand('datasets/alpha/{data_group}/bound_pairs.csv',
+               data_group=ALPHA_DATA_GROUPS),
+
 rule find_all_bound_pairs:
     input:
         ids=utils.get_id_filename('{pdb_id}'),
@@ -116,7 +140,7 @@ rule find_all_bound_pairs:
         complete='processed/bound_pairs/complete/individual/{pdb_id}.csv',
         fragmented='processed/bound_pairs/fragmented/individual/{pdb_id}.csv',
     shell:
-        'python3 scripts/find_all_bound_pairs.py --pdb_id {params.pdb_id} ' \
+        '$PEPBIND_PYTHON peptidebinding.find_all_bound_pairs --pdb_id {params.pdb_id} ' \
         '--cdr_fragment_length {params.cdr_fragment_length} ' \
         '--fragmented_outfile {output.fragmented} ' \
         '--complete_outfile {output.complete} --verbosity 3 2>&1 | tee {log}'
@@ -143,7 +167,7 @@ rule find_unique_bound_pairs:
         bound_pairs='processed/bound_pairs/fragmented/unique_bound_pairs.csv',
         fragment_lengths='processed/bound_pairs/fragmented/fragment_lengths.txt'
     script:
-        'scripts/snakemake_find_unique_bound_pairs.py'
+        'peptidebinding/snakemake_find_unique_bound_pairs.py'
 
 rule generate_simple_negatives:
     # Within each group, permute cdrs and targets to generate (assumed) negative
@@ -155,7 +179,7 @@ rule generate_simple_negatives:
     output:
         combined='processed/bound_pairs_simple_negatives.csv'
     shell:
-        'python3 scripts/generate_simple_negatives.py {input.positives} '\
+        '$PEPBIND_PYTHON peptidebinding.generate_simple_negatives {input.positives} '\
         '{output.combined} --verbosity 3 2>&1 | tee {log}'
 
 rule split_dataset_random:
@@ -171,7 +195,7 @@ rule split_dataset_random:
         label_filenames=expand('datasets/alpha/{data_group}/labels.npy',
                                data_group=ALPHA_DATA_GROUPS)
     shell:
-        'python3 scripts/split_dataset_random.py --input {input.combined} '\
+        '$PEPBIND_PYTHON peptidebinding.split_dataset_random --input {input.combined} '\
         '--group_proportions {params.group_proportions} '\
         '--data_filenames {output.data_filenames} '\
         '--label_filenames {output.label_filenames} '\
@@ -191,7 +215,7 @@ rule split_dataset_beta:
         label_filenames=expand('datasets/beta/{data_group}/labels.npy',
                                data_group=BETA_DATA_GROUPS)
     shell:
-        'python3 scripts/split_dataset_clusters_random.py --input {input.combined} '\
+        '$PEPBIND_PYTHON peptidebinding.split_dataset_clusters_random --input {input.combined} '\
         '--group_proportions {params.group_proportions} '\
         '--data_filenames {output.data_filenames} '\
         '--label_filenames {output.label_filenames} '\
@@ -223,7 +247,7 @@ rule split_dataset_beta_small:
         label_filenames=expand('datasets/beta/small/{{size}}/{data_group}/labels.npy',
                                data_group=BETA_DATA_GROUPS)
     shell:
-        'python3 scripts/split_dataset_clusters_random.py --input {input.combined} '\
+        '$PEPBIND_PYTHON peptidebinding.split_dataset_clusters_random --input {input.combined} '\
         '--group_proportions {params.group_proportions} '\
         '--data_filenames {output.data_filenames} '\
         '--label_filenames {output.label_filenames} '\
@@ -242,7 +266,7 @@ rule split_dataset_thresholds:
                                threshold=ALIGNMENT_THRESHOLDS,
                                data_group=THRESHOLD_GROUPS)
     shell:
-        'python3 scripts/split_dataset_thresholds.py --input {input.combined} '\
+        '$PEPBIND_PYTHON peptidebinding.split_dataset_thresholds --input {input.combined} '\
         '--data_filenames {output.data_filenames} --label_filenames {output.label_filenames} '\
         '--thresholds 0 -2 -4 -8 --num_negatives 15000 '\
         '--seed 13 --verbosity 3 2>&1 | tee {log}'
@@ -260,7 +284,7 @@ rule generate_representations:
     output:
          outfile='datasets/{full_data_group}/data_{representation}.npy'
     shell:
-         'python3 scripts/generate_representations.py --input {input.dataset} '\
+         '$PEPBIND_PYTHON peptidebinding.generate_representations --input {input.dataset} '\
          '--output_file {output.outfile} --representation {params.representation} '\
          '--fragment_lengths_file {input.fragment_lengths} --verbosity 3 2>&1 | tee {log}'
 
@@ -276,5 +300,5 @@ rule generate_e3fp_fingerprints:
     conda:
          'e3fp_env.yml'
     shell:
-        'python3 scripts/generate_fingerprint_representations.py --input {input.dataset} '\
+        '$PEPBIND_PYTHON peptidebinding.generate_fingerprint_representations --input {input.dataset} '\
         '--outfile {output.dataset} --verbosity 3 2>&1 | tee {log}'

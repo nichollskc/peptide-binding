@@ -26,7 +26,7 @@ def calculate_alignment_scores(column_1, column_2):
     lines = ['_'.join(pair) + '\n' for pair in zip(column_1, column_2)]
     with open(".tmp.sequences.txt", "w") as f:
         f.writelines(lines)
-    full_cmd = "parallel -j64 -m -k scripts/helper/run_seq_align_batch.sh :::: .tmp.sequences.txt"
+    full_cmd = "parallel -j64 -m -k peptidebinding/helper/run_seq_align_batch.sh :::: .tmp.sequences.txt"
     logging.debug(f"Full command is {full_cmd}")
     alignments = subprocess.run(full_cmd.split(" "),
                                 capture_output=True)
@@ -64,6 +64,7 @@ def calculate_distance_matrix(data_frame, columns):
     will be alignment(row_1_cdr, row_2_cdr) + alignment(row_1_target, row_2_target)."""
 
     # Initialise empty distance matrix
+    print("Here")
     num_rows = len(data_frame)
     distance_matrix = np.zeros((num_rows, num_rows))
 

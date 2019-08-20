@@ -6,7 +6,7 @@ import unittest
 
 import pandas as pd
 
-import scripts.helper.representations as reps
+import peptidebinding.helper.representations as reps
 
 class Test(unittest.TestCase):
     df_dict = {

@@ -1,10 +1,7 @@
 import argparse
 import logging
-# pylint: disable=wrong-import-position
 import os
 import subprocess
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 from e3fp.fingerprint import fprint, fprinter, db
 import pandas as pd
@@ -12,8 +9,8 @@ from python_utilities.parallel import Parallelizer
 from rdkit import Chem
 import scipy.sparse
 
-import scripts.helper.log_utils as log_utils
-import scripts.helper.query_biopython as qbp
+import peptidebinding.helper.log_utils as log_utils
+import peptidebinding.helper.query_biopython as qbp
 
 
 def generate_e3fp_fingerprint(sdf_file):
@@ -71,7 +68,7 @@ def convert_pdb_to_sdf(pdb_filenames, sdf_filename_root):
              if not os.path.exists(pair[1])]
     with open(".tmp.pdb_sdf_filenames.txt", "w") as f:
         f.writelines(lines)
-    full_cmd = "parallel -j64 -m -k scripts/helper/run_obabel_convert_batch.sh :::: .tmp.pdb_sdf_filenames.txt"
+    full_cmd = "parallel -j64 -m -k peptidebinding/helper/run_obabel_convert_batch.sh :::: .tmp.pdb_sdf_filenames.txt"
     logging.debug(f"Full command is {full_cmd}")
     command = subprocess.run(full_cmd.split(" "))
     if command.stderr:

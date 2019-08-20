@@ -6,7 +6,7 @@ import os
 import pandas as pd
 import Bio.PDB
 
-import scripts.helper.utils as utils
+import peptidebinding.helper.utils as utils
 
 
 def save_structure(structure, filename):
