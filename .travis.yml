@@ -13,15 +13,12 @@ install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
-  - export PYTHONPATH="$PYTHONPATH:$(pwd)"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
   - conda env create -f environment.yml
-  # Sacred can't be installed with conda, so install it *after* the conda install
-  - pip install sacred
   # Install seq-align
   - git submodule update --init --recursive
   - cd seq-align && make
@@ -39,6 +36,7 @@ script:
   - snakemake --cluster "qsub -q sl -V" --jobs 2 --dryrun --printshellcmds --use-conda
   # Run the snakemake command using coverage to run all the python scripts where possible
   - PEPBIND_PYTHON="coverage run -a -m" snakemake --printshellcmds --use-conda test
+  # Sacred can't be installed with conda, so install it *after* the conda install
   - pip install sacred
   # Train predictive models on one of the datasets, using parameters that give quick runs
   - coverage run -a -m peptidebinding.training.logistic_regression with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
