@@ -38,7 +38,7 @@ script:
   # Test the snakemake workflow with qsub to check jobs are grouped properly
   - snakemake --cluster "qsub -q sl -V" --jobs 2 --dryrun --printshellcmds --use-conda
   # Run the snakemake command using coverage to run all the python scripts where possible
-  - PEPBIND_PYTHON="coverage run -a" snakemake --printshellcmds --use-conda test
+  - PEPBIND_PYTHON="coverage run -a -m" snakemake --printshellcmds --use-conda test
   - pip install sacred
   # Train predictive models on one of the datasets, using parameters that give quick runs
   - coverage run -a -m peptidebinding.training.logistic_regression with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
