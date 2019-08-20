@@ -7,9 +7,9 @@ import random
 import numpy as np
 import pandas as pd
 
-import scripts.helper.distances as distances
-import scripts.helper.query_biopython as query_bp
-import scripts.helper.utils as utils
+import peptidebinding.helper.distances as distances
+import peptidebinding.helper.query_biopython as query_bp
+import peptidebinding.helper.utils as utils
 
 
 def construct_cdr_id(row):

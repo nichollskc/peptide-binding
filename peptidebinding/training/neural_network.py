@@ -11,7 +11,7 @@ import joblib
 from sacred import Experiment
 from sacred.observers import MongoObserver
 
-import scripts.helper.models as models
+import peptidebinding.helper.models as models
 
 experiment_name = "neural_network"
 

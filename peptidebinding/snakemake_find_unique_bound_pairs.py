@@ -1,13 +1,9 @@
 """Wrapper for snakemake to call the find_unique_bound_pairs script"""
-# pylint: disable=wrong-import-position
 import logging
-import os
-import sys
 import traceback
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
-import scripts.find_unique_bound_pairs as find_unique_bound_pairs
-import scripts.helper.log_utils as log_utils
+import peptidebinding.find_unique_bound_pairs as find_unique_bound_pairs
+import peptidebinding.helper.log_utils as log_utils
 
 log_utils.setup_logging(3, logfile=snakemake.log[0])
 try:

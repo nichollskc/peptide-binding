@@ -6,7 +6,7 @@ import unittest
 
 import pandas as pd
 
-import scripts.helper.distances as distances
+import peptidebinding.helper.distances as distances
 
 
 class Test(unittest.TestCase):

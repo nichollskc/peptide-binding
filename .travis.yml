@@ -22,7 +22,6 @@ install:
   - conda env create -f environment.yml
   # Sacred can't be installed with conda, so install it *after* the conda install
   - pip install sacred
-  - python setup.py install
   # Install seq-align
   - git submodule update --init --recursive
   - cd seq-align && make
@@ -32,21 +31,20 @@ install:
   - conda list
 
 script:
-  - source activate rationaldesign
+  - source activate peptidebinding
   # Run the tests, checking for coverage.
-  - coverage run --source=scripts -m unittest discover -s tests
+  - coverage run --source=peptidebinding -m unittest discover -s tests
   - coverage report -m
   # Test the snakemake workflow with qsub to check jobs are grouped properly
-  - KCN_CURRENT_DIR=$(pwd) snakemake --cluster "qsub -q sl -V" --jobs 2 --dryrun --printshellcmds --use-conda
+  - snakemake --cluster "qsub -q sl -V" --jobs 2 --dryrun --printshellcmds --use-conda
   # Run the snakemake command using coverage to run all the python scripts where possible
-  - KCN_CURRENT_DIR=$(pwd) PEPBIND_PYTHON="coverage run -a" snakemake --printshellcmds --use-conda test
-  - python3 setup.py install
+  - PEPBIND_PYTHON="coverage run -a" snakemake --printshellcmds --use-conda test
   - pip install sacred
   # Train predictive models on one of the datasets, using parameters that give quick runs
-  - coverage run -a scripts/training/logistic_regression.py with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
-  - coverage run -a scripts/training/random_forest.py with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
-  - coverage run -a scripts/training/random_forest_single.py with representation='fingerprints' dataset='beta/small/100/clust'
-  - coverage run -a scripts/training/neural_network.py with representation='fingerprints' dataset='beta/small/100/clust' epochs=2
+  - coverage run -a -m peptidebinding.training.logistic_regression with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
+  - coverage run -a -m peptidebinding.training.random_forest with representation='fingerprints' dataset='beta/small/100/clust' num_folds=2 num_param_sets=2
+  - coverage run -a -m peptidebinding.training.random_forest_single with representation='fingerprints' dataset='beta/small/100/clust'
+  - coverage run -a -m peptidebinding.training.neural_network with representation='fingerprints' dataset='beta/small/100/clust' epochs=2
   - coverage report -m
 
 env:

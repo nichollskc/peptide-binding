@@ -2,18 +2,14 @@
 split the list into train, test and validate."""
 import argparse
 import logging
-# pylint: disable=wrong-import-position
-import os
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 import numpy as np
 import pandas as pd
 
-import scripts.helper.construct_database as con_dat
-import scripts.helper.log_utils as log_utils
-import scripts.helper.utils as utils
-import scripts.cluster_sequences as cluster
+import peptidebinding.helper.construct_database as con_dat
+import peptidebinding.helper.log_utils as log_utils
+import peptidebinding.helper.utils as utils
+import peptidebinding.helper.cluster_sequences as cluster
 
 parser = argparse.ArgumentParser(description="Given a list of CDR-like fragments and the "
                                              "target fragments they interact with, split the "

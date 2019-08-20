@@ -6,7 +6,7 @@ import unittest
 
 import Bio.PDB
 
-import scripts.helper.query_biopython as query_bp
+import peptidebinding.helper.query_biopython as query_bp
 
 
 class Test(unittest.TestCase):

@@ -1,12 +1,7 @@
 """Performs data exploration of database."""
-
 import json
 import random
 import subprocess
-# pylint: disable=wrong-import-position
-import os
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
 from Bio import SeqIO
 import numpy as np
@@ -14,10 +9,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from sklearn.metrics import adjusted_rand_score
-#
-# import construct_database as con_dat
-import scripts.helper.distances as distances
-import scripts.cluster_sequences as clstr
+
+import peptidebinding.helper.distances as distances
+import peptidebinding.helper.cluster_sequences as clstr
 
 
 def save_plot(filename, folder="plots/"):

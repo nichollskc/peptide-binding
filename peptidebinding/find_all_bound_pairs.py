@@ -1,14 +1,10 @@
 """Finds all CDR-like fragments and the target fragments they interact with."""
 import argparse
 import logging
-# pylint: disable=wrong-import-position
-import os
-import sys
-sys.path.append(os.environ.get('KCN_CURRENT_DIR'))
 
-import scripts.helper.construct_database as con_dat
-import scripts.helper.query_biopython as query_bp
-import scripts.helper.log_utils as log_utils
+import peptidebinding.helper.construct_database as con_dat
+import peptidebinding.helper.query_biopython as query_bp
+import peptidebinding.helper.log_utils as log_utils
 
 parser = argparse.ArgumentParser(description="Process the interaction matrix and .pdb file of "
                                              "a given PDB object and output the CDR-like fragments "
