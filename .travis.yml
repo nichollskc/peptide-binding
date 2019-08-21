@@ -20,7 +20,6 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   - conda env create -f environment.yml
-  - conda activate peptidebinding
   # Install seq-align
   - git submodule update --init --recursive
   - cd seq-align && make
@@ -30,6 +29,7 @@ install:
   - conda list
 
 script:
+  - source activate peptidebinding
   # Run the tests, checking for coverage.
   - coverage run --source=peptidebinding -m unittest discover -s tests
   - coverage report -m
