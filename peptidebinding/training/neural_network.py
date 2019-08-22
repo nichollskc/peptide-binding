@@ -57,7 +57,7 @@ def construct_save_dir(dataset, representation):
 def get_data(dataset, representation):
     """Get data corresponding to representation."""
     data = models.load_data(dataset, representation)
-    return data['X_train'], data['y_train'], data['X_val'], data['y_val']
+    return data['X_train'].toarray(), data['y_train'], data['X_val'].toarray(), data['y_val']
 
 
 @ex.capture

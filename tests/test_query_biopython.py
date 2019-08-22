@@ -101,5 +101,5 @@ class Test(unittest.TestCase):
 
 
 if __name__ == '__main__':
-
+    os.makedirs('processed/pdbs/')
     unittest.main()
