@@ -72,7 +72,7 @@ group_proportions = [80, 20]
 thresholds = args.thresholds
 
 logging.info(f"Reading in data frame {args.input}")
-data_frame = con_dat.read_bound_pairs(args.input)
+data_frame = utils.read_bound_pairs(args.input)
 logging.info(f"Read {len(data_frame)} rows")
 positives_df = data_frame[data_frame['binding_observed'] == 1].iloc[:args.num_negatives]
 logging.info(f"Chosen {len(positives_df)} random positive samples")

@@ -1,24 +1,11 @@
 """Constructs database of interacting fragments."""
-
-import json
 import logging
-import random
 
 import numpy as np
 import pandas as pd
 
 import peptidebinding.helper.distances as distances
-import peptidebinding.helper.query_biopython as query_bp
 import peptidebinding.helper.utils as utils
-
-
-def construct_cdr_id(row):
-    """Generates an ID for the given bound pair row e.g. '2xzz_0_3_AAFF'"""
-    indices = json.loads(row.cdr_bp_id_str)
-    start_ind = indices[0]
-    end_ind = indices[-1]
-    name = "_".join(map(str, [row.pdb_id, start_ind, end_ind, row.cdr_resnames]))
-    return name
 
 
 def read_matrix_from_file(pdb_id):
@@ -92,43 +79,10 @@ def find_target_indices_from_matrix(matrix, cdr_indices):
     return target_indices
 
 
-def print_targets_to_file(bound_pairs, filename):
-    """Prints bound pairs to csv file."""
-    df = pd.DataFrame(bound_pairs)
-    utils.save_df_csv_quoted(df, filename)
-
-
-def find_bound_pairs(pdb_id, fragment_length):
-    """Finds all CDR-like fragments of the given length in the interaction
-    matrix for the given pdb_id. Additionally the residues these fragments
-    interact with.
-
-    Finds contiguous fragments in the target residues for each CDR and for
-    each contiguous fragment, writes the following out to file:
-    cdr indices, chain, indices in PDB file, residue names
-    same for fragment of target residues
-    """
-    matrix = read_matrix_from_file(pdb_id)
-    bound_pairs, bound_pairs_fragmented = query_bp.find_all_binding_pairs(matrix,
-                                                                          pdb_id,
-                                                                          fragment_length)
-
-    return bound_pairs, bound_pairs_fragmented
-
-
-def read_bound_pairs(filename):
-    """Read a csv file containing bound pairs and return the csv"""
-    try:
-        bound_pairs_df = pd.read_csv(filename, header=0, index_col=None)
-        return bound_pairs_df
-    except pd.errors.EmptyDataError:
-        logging.warning(f"File '{filename}' didn't have any columns. Ignoring file.")
-
-
 def combine_bound_pairs(filename_list):
     """Read in all the bound pairs from the csv files in `filename_list` and
     combine them into a single dataframe"""
-    data_frames = [read_bound_pairs(filename) for filename in filename_list]
+    data_frames = [utils.read_bound_pairs(filename) for filename in filename_list]
     combined_data_frame = pd.concat(data_frames)
     return combined_data_frame
 
@@ -155,43 +109,6 @@ def remove_duplicate_rows(data_frame, columns):
                  f"now has {len(no_duplicates)} rows.")
 
     return no_duplicates
-
-
-def find_all_bound_pairs(ids_list, fragment_length):
-    """Finds all CDR-like fragments of the given length in the files listed in
-    the array ids_list. Additionally finds the residues these fragments interact
-    with. Outputs all finds to files, with separate files for each pdb_id.
-    """
-    for pdb_id in ids_list:
-        find_bound_pairs(pdb_id, fragment_length)
-
-
-def find_unique_bound_pairs(filename_list):
-    """
-    Reads in all bound_pairs files from the filename_list, combines into a csv file
-    after removing duplicated rows (based on sequence identify of both cdr and target).
-    Args:
-        filename_list (array): list of files containing bound_pairs
-
-    Returns:
-        pandas.DataFrame: data frame where each row is a bound pair and duplicates
-            have been removed
-    """
-    all_bound_pairs = combine_bound_pairs(filename_list)
-    bound_pairs_no_duplicates = remove_duplicate_rows(all_bound_pairs,
-                                                      ['cdr_resnames', 'target_resnames'])
-
-    return bound_pairs_no_duplicates
-
-
-def sample_index_pairs(data_frame, k):
-    """Samples k pairs of rows from the data frame. Returns as a zipped list of
-    the random pairs."""
-    random_indices = random.choices(list(range(len(data_frame.index))), k=2 * k)
-
-    random_donors = random_indices[:k]
-    random_acceptors = random_indices[k:]
-    return zip(random_acceptors, random_donors)
 
 
 def generate_proposal_negatives(data_frame, k):

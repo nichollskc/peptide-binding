@@ -91,6 +91,6 @@ if __name__ == "__main__":
     logging.info(f"Splitting rows from file '{args.input}' groups of data: "
                  f"{list(zip(data_filenames, label_filenames, group_proportions))}.")
 
-    bound_pairs_df = con_dat.read_bound_pairs(args.input)
+    bound_pairs_df = utils.read_bound_pairs(args.input)
 
     main(bound_pairs_df, group_proportions, label_filenames, data_filenames, args.seed)

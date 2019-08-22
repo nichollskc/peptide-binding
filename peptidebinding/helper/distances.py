@@ -26,7 +26,8 @@ def calculate_alignment_scores(column_1, column_2):
     lines = ['_'.join(pair) + '\n' for pair in zip(column_1, column_2)]
     with open(".tmp.sequences.txt", "w") as f:
         f.writelines(lines)
-    full_cmd = "parallel -j64 -m -k peptidebinding/helper/run_seq_align_batch.sh :::: .tmp.sequences.txt"
+    full_cmd = "parallel -j64 -m -k " \
+               "peptidebinding/helper/run_seq_align_batch.sh :::: .tmp.sequences.txt"
     logging.debug(f"Full command is {full_cmd}")
     alignments = subprocess.run(full_cmd.split(" "),
                                 capture_output=True)
@@ -42,20 +43,6 @@ def calculate_alignment_scores(column_1, column_2):
     return scores
 
 
-def calculate_similarity_score_alignment(row1, row2):
-    """Calculates the similarity score between two bound pairs, where they are given
-    as rows of a pandas.DataFrame with columns 'cdr_resnames' and 'target_resnames'.
-    The measure of similarity is the sum of the alignment score of the CDR fragments
-    and of the target fragments."""
-    cdr_distance = calculate_alignment_score(row1['cdr_resnames'],
-                                             row2['cdr_resnames'])
-    target_distance = calculate_alignment_score(row1['target_resnames'],
-                                                row2['target_resnames'])
-
-    similarity = cdr_distance + target_distance
-    return similarity
-
-
 def calculate_distance_matrix(data_frame, columns):
     """Given a data frame, constructs a distance matrix between each pair of rows
     where the distance is the sum of the alignment scores between rows for each
@@ -64,7 +51,6 @@ def calculate_distance_matrix(data_frame, columns):
     will be alignment(row_1_cdr, row_2_cdr) + alignment(row_1_target, row_2_target)."""
 
     # Initialise empty distance matrix
-    print("Here")
     num_rows = len(data_frame)
     distance_matrix = np.zeros((num_rows, num_rows))
 

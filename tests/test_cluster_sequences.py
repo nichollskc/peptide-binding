@@ -2,12 +2,12 @@
 # pylint: disable=missing-docstring
 # pylint: disable=no-self-use
 
+import os
 import unittest
 
 import pandas as pd
 
-import peptidebinding.helper.distances as distances
-
+import peptidebinding.helper.cluster_sequences as cluster
 
 class Test(unittest.TestCase):
     df_dict = {
@@ -29,7 +29,16 @@ class Test(unittest.TestCase):
                          2000: 'VRGL',
                          2001: 'VRGL',
                          2002: 'RGLT'},
-        'pdb_id': {1: '3cuq',
+        'original_cdr_pdb_id': {1: '3cuq',
+                   10: '3cuq',
+                   50: '3cuq',
+                   200: '3cuq',
+                   1000: '1mhp',
+                   1500: '1mhp',
+                   2000: '2h5c',
+                   2001: '2h5c',
+                   2002: '2h5c'},
+        'target_pdb_id': {1: '3cuq',
                    10: '3cuq',
                    50: '3cuq',
                    200: '3cuq',
@@ -75,28 +84,15 @@ class Test(unittest.TestCase):
                        2001: '2h5c',
                        2002: '2h5c'}
     }
+    df = pd.DataFrame(df_dict)
 
-    def test_calculate_distance_matrix(self):
-        dist_mat = distances.calculate_distance_matrix(pd.DataFrame(self.df_dict),
-                                                       ['cdr_resnames', 'target_resnames'])
-
-        self.assertEqual(dist_mat.shape, (9, 9))
-
-        # All diagonal entries should be positive
-        for i in range(len(self.df_dict['cdr_resnames'])):
-            self.assertTrue(dist_mat[i, i] > 0)
-
-        # Should be symmetric
-        for i in range(dist_mat.shape[0]):
-            for j in range(dist_mat.shape[1]):
-                self.assertEqual(dist_mat[i, j], dist_mat[j, i])
-
-        # This particular matrix should have 18 negative entries
-        self.assertEqual((dist_mat < 0).sum(), 18)
-
-    def test_short_alignment_score(self):
-        score = distances.calculate_alignment_score('PQQL', 'GGHS')
-        self.assertEqual(score, -4)
+    def test_short_clustered_split(self):
+        os.makedirs('processed/clusters/')
+        grouped_dfs = cluster.split_dataset_clustered(self.df, [60, 20, 20], seed=42)
+        self.assertEqual(len(grouped_dfs), 3)
+        self.assertEqual(len(grouped_dfs[0]), 5)
+        self.assertEqual(len(grouped_dfs[1]), 2)
+        self.assertEqual(len(grouped_dfs[2]), 2)
 
 
 if __name__ == '__main__':

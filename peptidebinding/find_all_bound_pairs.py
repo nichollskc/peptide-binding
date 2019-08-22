@@ -5,6 +5,7 @@ import logging
 import peptidebinding.helper.construct_database as con_dat
 import peptidebinding.helper.query_biopython as query_bp
 import peptidebinding.helper.log_utils as log_utils
+import peptidebinding.helper.utils as utils
 
 parser = argparse.ArgumentParser(description="Process the interaction matrix and .pdb file of "
                                              "a given PDB object and output the CDR-like fragments "
@@ -64,12 +65,12 @@ logging.info(f"Number of fragmented bound pairs: {len(bound_pairs_fragmented)}")
 
 # Output to file
 if args.complete_outfile:
-    con_dat.print_targets_to_file(bound_pairs,
-                                  args.complete_outfile)
+    utils.print_targets_to_file(bound_pairs,
+                                args.complete_outfile)
     logging.info(f"Written complete bound pairs to {args.complete_outfile}")
 if args.fragmented_outfile:
-    con_dat.print_targets_to_file(bound_pairs_fragmented,
-                                  args.fragmented_outfile)
+    utils.print_targets_to_file(bound_pairs_fragmented,
+                                args.fragmented_outfile)
     logging.info(f"Written fragmented bound pairs to {args.fragmented_outfile}")
 
 logging.info("Done")

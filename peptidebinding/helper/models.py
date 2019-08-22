@@ -68,12 +68,12 @@ def load_data(dataset, representation):
     logging.info(f"Loading data from dataset {dataset}, representation {representation}")
 
     if representation == "fingerprints":
-        X_train = scipy.sparse.load_npz(f"datasets/{dataset}/training/data_{representation}.npz").toarray()
+        X_train = scipy.sparse.load_npz(f"datasets/{dataset}/training/data_{representation}.npz")
         y_train = np.load(f"datasets/{dataset}/training/labels.npy")
 
         logging.info(f"Loaded training data")
 
-        X_val = scipy.sparse.load_npz(f"datasets/{dataset}/validation/data_{representation}.npz").toarray()
+        X_val = scipy.sparse.load_npz(f"datasets/{dataset}/validation/data_{representation}.npz")
         y_val = np.load(f"datasets/{dataset}/validation/labels.npy")
 
         logging.info(f"Loaded validation data")
