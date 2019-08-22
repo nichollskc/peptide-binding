@@ -2,6 +2,7 @@
 # pylint: disable=missing-docstring
 # pylint: disable=no-self-use
 
+import os
 import unittest
 
 import pandas as pd
@@ -86,6 +87,7 @@ class Test(unittest.TestCase):
     df = pd.DataFrame(df_dict)
 
     def test_short_clustered_split(self):
+        os.makedirs('processed/clusters/')
         grouped_dfs = cluster.split_dataset_clustered(self.df, [60, 20, 20], seed=42)
         self.assertEqual(len(grouped_dfs), 3)
         self.assertEqual(len(grouped_dfs[0]), 5)

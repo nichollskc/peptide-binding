@@ -94,6 +94,7 @@ class Test(unittest.TestCase):
         self.assertEqual(fragments_11, expected_11)
 
     def test_short_write_all_bound_pairs_pdb(self):
+        os.makedirs('processed/pdbs/')
         filenames = query_bp.write_all_bound_pairs_pdb(self.bound_pairs_df)
         for filename in filenames:
             os.remove(filename)
@@ -101,5 +102,4 @@ class Test(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    os.makedirs('processed/pdbs/')
     unittest.main()
