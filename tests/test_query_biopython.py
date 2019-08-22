@@ -2,14 +2,33 @@
 # pylint: disable=missing-docstring
 # pylint: disable=no-self-use
 
+import os
 import unittest
 
 import Bio.PDB
+import numpy as np
+import pandas as pd
 
 import peptidebinding.helper.query_biopython as query_bp
 
 
 class Test(unittest.TestCase):
+    df_dict = {'cdr_bp_id_str': {0: '[201, 202, 203, 204]', 1: '[186, 187, 188, 189]'},
+               'cdr_resnames': {0: 'LRLS', 1: 'QLAA'},
+               'target_bp_id_str': {0: '[44, 45, 46]', 1: '[191, 192, 193]'},
+               'target_length': {0: 3, 1: 3},
+               'target_resnames': {0: 'SQL', 1: 'TRR'},
+               'cdr_pdb_id': {0: '1mhp', 1: '5waq'},
+               'target_pdb_id': {0: '5waq', 1: '5waq'},
+               'binding_observed': {0: 0, 1: 1},
+               'similarity_score': {0: -2.0, 1: np.nan},
+               'original_cdr_bp_id_str': {0: '[48, 49, 50, 51]', 1: np.nan},
+               'original_cdr_resnames': {0: 'TAYA', 1: np.nan},
+               'original_cdr_pdb_id': {0: '5waq', 1: np.nan},
+               'paired': {0: "('LRLS', 'SQL')", 1: np.nan},
+               'cdr_cluster_id': {0: 23, 1: 17},
+               'target_cluster_id': {0: np.nan, 1: np.nan}}
+    bound_pairs_df = pd.DataFrame(df_dict)
 
     def test_short_round_test_compact_bp_id(self):
         parser = Bio.PDB.PDBParser()
@@ -73,6 +92,12 @@ class Test(unittest.TestCase):
                                                           max_gap=1,
                                                           min_fragment_length=1)
         self.assertEqual(fragments_11, expected_11)
+
+    def test_short_write_all_bound_pairs_pdb(self):
+        filenames = query_bp.write_all_bound_pairs_pdb(self.bound_pairs_df)
+        for filename in filenames:
+            os.remove(filename)
+        query_bp.write_all_bound_pairs_pdb(self.bound_pairs_df)
 
 
 if __name__ == '__main__':

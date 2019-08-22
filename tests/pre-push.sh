@@ -1,13 +1,12 @@
 #!/bin/bash
-# pre-commit.sh
 # Runs tests and returns non-zero exit code if they failed
 
 # Run pylint on all .py files and check no errors
-find ./scripts -name "*.py" | xargs pylint --rcfile=.pylintrc
+find ./peptidebinding -name "*.py" | xargs pylint --rcfile=.pylintrc
 PYLINT_RESULT=$?
 
 # Test prospective commit
-$(coverage run --source=scripts/helper -m unittest discover -s tests)
+$(coverage run --source=peptidebinding/helper -m unittest discover -s tests)
 TEST_RESULT=$?
 
 coverage report --fail-under=80

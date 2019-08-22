@@ -69,12 +69,12 @@ ALIGNMENT_THRESHOLDS = [0, -2, -4, -8]
 
 rule all:
     input:
-        # Full dataset
-        expand('datasets/beta/{data_group}/data_{data_type}.npy',
-               data_group=BETA_DATA_GROUPS,
-               data_type=DATA_TYPES),
-        expand('datasets/beta/{data_group}/labels.npy',
-               data_group=BETA_DATA_GROUPS),
+        # Full dataset - not possible due to memory restrictions
+        # expand('datasets/beta/{data_group}/data_{data_type}.npy',
+        #        data_group=BETA_DATA_GROUPS,
+        #        data_type=DATA_TYPES),
+        # expand('datasets/beta/{data_group}/labels.npy',
+        #        data_group=BETA_DATA_GROUPS),
         # Smaller subsets of the dataset
         expand('datasets/beta/small/10000/{data_group}/data_{data_type}.npy',
                data_group=BETA_DATA_GROUPS,

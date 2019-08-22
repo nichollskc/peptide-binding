@@ -6,9 +6,9 @@ import json
 
 import numpy as np
 
-import peptidebinding.helper.construct_database as con_dat
 import peptidebinding.helper.log_utils as log_utils
 import peptidebinding.helper.representations as reps
+import peptidebinding.helper.utils as utils
 
 parser = argparse.ArgumentParser(description="Generate feature matrices for the given bound pairs",
                                  formatter_class=argparse.RawTextHelpFormatter)
@@ -55,7 +55,7 @@ log_utils.setup_logging(args.verbosity)
 logging.info(f"Generating representations of type {args.representation} for input "
              f"from file '{args.input}'.")
 
-bound_pairs_df = con_dat.read_bound_pairs(args.input)
+bound_pairs_df = utils.read_bound_pairs(args.input)
 total_bound_pairs = len(bound_pairs_df)
 logging.info(f"Number of bound pairs in complete table: {total_bound_pairs}")
 

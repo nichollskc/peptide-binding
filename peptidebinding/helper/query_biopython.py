@@ -9,7 +9,8 @@ import Bio.PDB
 import peptidebinding.helper.utils as utils
 
 
-def save_structure(structure, filename):
+def save_structure_to_pdb(structure, filename):
+    """Save a Biopython structure to a PDB file."""
     io = Bio.PDB.PDBIO()
     io.set_structure(structure)
     io.save(filename)
@@ -456,15 +457,7 @@ def write_bound_pair_to_pdb(row, filename):
     m.add(target_chain)
 
     # Save the structure
-    save_structure(s, filename)
-
-
-def write_bound_pair_to_pdb_wrapped(bound_pair_id):
-    row_dict = utils.get_dict_from_bound_pair_id(bound_pair_id)
-    bound_pair_id = utils.get_bound_pair_id_from_row(row)
-    filename = f"processed/pdbs/{bound_pair_id}.pdb"
-
-    write_bound_pair_to_pdb(row_dict, filename)
+    save_structure_to_pdb(s, filename)
 
 
 def write_all_bound_pairs_pdb(bound_pairs_df):
@@ -472,7 +465,7 @@ def write_all_bound_pairs_pdb(bound_pairs_df):
     Returns a list of all the files written."""
     filenames = []
     generated = 0
-    for ind, row in bound_pairs_df.iterrows():
+    for _ind, row in bound_pairs_df.iterrows():
         bound_pair_id = utils.get_bound_pair_id_from_row(row)
         filename = f"processed/pdbs/{bound_pair_id}.pdb"
         if os.path.exists(filename) and os.path.getsize(filename) > 0:

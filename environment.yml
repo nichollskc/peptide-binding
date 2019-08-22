@@ -22,5 +22,5 @@ dependencies:
   - dnspython=1.16.0
   - joblib=0.13.2
   - scikit-learn=0.21.2
+  - tensorflow=1.14.0
 prefix: /anaconda3/envs/peptidebinding
-

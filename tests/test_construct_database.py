@@ -75,11 +75,9 @@ class Test(unittest.TestCase):
                        2001: '2h5c',
                        2002: '2h5c'}
     }
+    df = pd.DataFrame(df_dict)
 
-    def test_find_all_bound_pairs(self):
-        con_dat.find_all_bound_pairs(["3cuq", "1mhp"], fragment_length=4)
-
-    def test_short_generate_negatives_alignment_threshold(self):
+    def test_generate_negatives_alignment_threshold(self):
         # There are precisely 9 rows and precisely 9 pairs that have <0 similarity
         #   so this should only just work
         num_positives = len(self.df_dict['cdr_resnames'])
@@ -91,7 +89,7 @@ class Test(unittest.TestCase):
         no_duplicates = con_dat.remove_duplicate_rows(combined, ['cdr_resnames', 'target_resnames'])
         pd.testing.assert_frame_equal(no_duplicates, combined)
 
-        combined = con_dat.generate_negatives_alignment_threshold(pd.DataFrame(self.df_dict), k=2)
+        combined = con_dat.generate_negatives_alignment_threshold(self.df, k=2)
         self.assertEqual(len(combined.index), 2 + num_positives)
 
         # Should already be free of duplicates
@@ -149,6 +147,13 @@ class Test(unittest.TestCase):
                                    columns=["ID", "a", "b"])
         pd.testing.assert_frame_equal(trimmed_ab.reset_index(drop=True),
                                       expected_ab.reset_index(drop=True))
+
+    def test_short_random_split(self):
+        grouped_dfs = con_dat.split_dataset_random(self.df, [60, 20, 20], seed=42)
+        self.assertEqual(len(grouped_dfs), 3)
+        self.assertEqual(len(grouped_dfs[0]), 5)
+        self.assertEqual(len(grouped_dfs[1]), 2)
+        self.assertEqual(len(grouped_dfs[2]), 2)
 
 
 if __name__ == '__main__':

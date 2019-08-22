@@ -67,7 +67,7 @@ assert sum(group_proportions) == 100, \
     "--group_proportions must be a comma-separated list of percentages that add up to 100."
 logging.info(f"Splitting rows from file '{args.input}' into groups of data.")
 
-bound_pairs_df = con_dat.read_bound_pairs(args.input)
+bound_pairs_df = utils.read_bound_pairs(args.input)
 total_bound_pairs = len(bound_pairs_df)
 logging.info(f"Number of bound pairs in complete table: {total_bound_pairs}")
 
